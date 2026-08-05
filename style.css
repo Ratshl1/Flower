@@ -1,0 +1,221 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    position:relative;
+}
+
+#overlay{
+    position:fixed;
+    inset:0;
+    background:#000;
+    z-index:1;
+}
+
+#canvas{
+    position:absolute;
+    width:100vw;
+    height:100vh;
+    z-index:5;
+}
+
+#finalImage{
+
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    transform:
+        translate(-50%,-50%)
+        scale(.95);
+
+    width:min(90vw,900px);
+
+    opacity:0;
+
+    filter:
+        brightness(.9)
+        drop-shadow(0 0 25px #ff5db5)
+        drop-shadow(0 0 60px #ff5db5);
+
+    transition:
+        opacity 6s ease,
+        transform 6s ease,
+        filter 3s ease;
+
+    z-index:20;
+
+    pointer-events:none;
+
+}
+
+#flash{
+
+    position:fixed;
+
+    inset:0;
+
+    background:white;
+
+    opacity:0;
+
+    pointer-events:none;
+
+    z-index:30;
+
+}
+
+.flash{
+
+    animation:flash .8s ease;
+
+}
+
+@keyframes flash{
+
+0%{
+opacity:0;
+}
+
+35%{
+opacity:.9;
+}
+
+100%{
+opacity:0;
+}
+
+}
+
+.showImage{
+
+    opacity:1 !important;
+
+    transform:
+        translate(-50%,-50%)
+        scale(1);
+
+}
+
+.glow{
+
+    animation:
+        glow 4s ease-in-out infinite;
+
+}
+
+@keyframes glow{
+
+0%{
+
+filter:
+brightness(.9)
+drop-shadow(0 0 20px #ff66bb);
+
+}
+
+50%{
+
+filter:
+brightness(1.08)
+drop-shadow(0 0 55px #ff66bb);
+
+}
+
+100%{
+
+filter:
+brightness(.9)
+drop-shadow(0 0 20px #ff66bb);
+
+}
+
+}
+
+.wind{
+
+    animation:
+        wind 7s ease-in-out infinite;
+
+}
+
+@keyframes wind{
+
+0%{
+
+transform:
+translate(-50%,-50%)
+rotate(0deg)
+scale(1);
+
+}
+
+25%{
+
+transform:
+translate(-50.2%,-50.1%)
+rotate(.5deg)
+scale(1.002);
+
+}
+
+50%{
+
+transform:
+translate(-50%,-50%)
+rotate(-.6deg)
+scale(1.004);
+
+}
+
+75%{
+
+transform:
+translate(-49.8%,-50%)
+rotate(.4deg)
+scale(1.002);
+
+}
+
+100%{
+
+transform:
+translate(-50%,-50%)
+rotate(0deg)
+scale(1);
+
+}
+
+}
+
+.fadeCanvas{
+
+    animation:
+        hideCanvas 5s forwards;
+
+}
+
+@keyframes hideCanvas{
+
+to{
+
+opacity:0;
+
+}
+
+}
