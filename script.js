@@ -1,425 +1,183 @@
-// ==========================
-// I LOVE U CINEMATIC
-// Part 1
-// ==========================
+/*=========================================
+        I LOVE U CINEMATIC
+            PART 1
+=========================================*/
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const drawCanvas = document.getElementById("drawCanvas");
+const drawCtx = drawCanvas.getContext("2d");
 
-const img = document.getElementById("finalImage");
-const flash = document.getElementById("flash");
+const particleCanvas = document.getElementById("particleCanvas");
+const particleCtx = particleCanvas.getContext("2d");
 
-resize();
+const imageContainer = document.getElementById("imageContainer");
+const flowerImage = document.getElementById("flowerImage");
 
-window.addEventListener("resize", resize);
+const light = document.getElementById("light");
+
+/*=========================================
+              CANVAS SIZE
+=========================================*/
 
 function resize(){
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    drawCanvas.width = window.innerWidth;
+    drawCanvas.height = window.innerHeight;
+
+    particleCanvas.width = window.innerWidth;
+    particleCanvas.height = window.innerHeight;
 
 }
 
-ctx.lineCap="round";
-ctx.lineJoin="round";
+resize();
 
-let progress = 0;
+window.addEventListener("resize",resize);
 
-const flowerLeft={
-    x:canvas.width*0.33,
-    y:canvas.height*0.72,
-    s:1
+/*=========================================
+          DRAW STYLE
+=========================================*/
+
+drawCtx.lineCap="round";
+drawCtx.lineJoin="round";
+
+drawCtx.strokeStyle="#71b7ff";
+
+drawCtx.lineWidth=4;
+
+/*=========================================
+        FLOWER POSITION
+=========================================*/
+
+const leftFlower={
+
+    x:drawCanvas.width*0.33,
+
+    y:drawCanvas.height*0.72
+
 };
 
-const flowerRight={
-    x:canvas.width*0.67,
-    y:canvas.height*0.72,
-    s:1
+const rightFlower={
+
+    x:drawCanvas.width*0.67,
+
+    y:drawCanvas.height*0.72
+
 };
+
+/*=========================================
+      CHILD DRAWING EFFECT
+=========================================*/
 
 function roughLine(x1,y1,x2,y2){
 
-    ctx.beginPath();
+    drawCtx.beginPath();
 
-    ctx.moveTo(x1,y1);
+    drawCtx.moveTo(x1,y1);
 
-    const pieces=30;
+    const pieces=35;
 
     for(let i=1;i<=pieces;i++){
 
         const t=i/pieces;
 
-        const nx=x1+(x2-x1)*t+(Math.random()-0.5)*4;
-        const ny=y1+(y2-y1)*t+(Math.random()-0.5)*4;
+        const x=x1+(x2-x1)*t+(Math.random()-0.5)*5;
 
-        ctx.lineTo(nx,ny);
+        const y=y1+(y2-y1)*t+(Math.random()-0.5)*5;
+
+        drawCtx.lineTo(x,y);
 
     }
 
-    ctx.stroke();
+    drawCtx.stroke();
 
 }
 
-function petal(cx,cy,r,rot){
+/*=========================================
+            PETAL
+=========================================*/
 
-    ctx.save();
+function petal(cx,cy,size,angle){
 
-    ctx.translate(cx,cy);
+    drawCtx.save();
 
-    ctx.rotate(rot);
+    drawCtx.translate(cx,cy);
 
-    ctx.beginPath();
+    drawCtx.rotate(angle);
 
-    for(let i=0;i<45;i++){
+    drawCtx.beginPath();
 
-        const t=i/45;
+    for(let i=0;i<50;i++){
 
-        const x=Math.sin(t*Math.PI)*r*0.7;
+        const t=i/50;
 
-        const y=-t*r;
+        const x=Math.sin(t*Math.PI)*size*.72;
+
+        const y=-size*t;
 
         if(i===0)
-            ctx.moveTo(0,0);
+            drawCtx.moveTo(0,0);
 
-        ctx.lineTo(
-            x+(Math.random()-0.5)*2,
-            y+(Math.random()-0.5)*2
+        drawCtx.lineTo(
+
+            x+(Math.random()-.5)*2,
+
+            y+(Math.random()-.5)*2
+
         );
 
     }
 
-    for(let i=45;i>=0;i--){
+    for(let i=50;i>=0;i--){
 
-        const t=i/45;
+        const t=i/50;
 
-        const x=-Math.sin(t*Math.PI)*r*0.7;
+        const x=-Math.sin(t*Math.PI)*size*.72;
 
-        const y=-t*r;
+        const y=-size*t;
 
-        ctx.lineTo(
-            x+(Math.random()-0.5)*2,
-            y+(Math.random()-0.5)*2
+        drawCtx.lineTo(
+
+            x+(Math.random()-.5)*2,
+
+            y+(Math.random()-.5)*2
+
         );
 
     }
 
-    ctx.closePath();
+    drawCtx.closePath();
 
-    ctx.stroke();
+    drawCtx.stroke();
 
-    ctx.restore();
+    drawCtx.restore();
 
 }
 
-function drawFlower(f){
+/*=========================================
+      FLOWER CENTER
+=========================================*/
 
-    ctx.strokeStyle="#6aa8ff";
+function center(cx,cy){
 
-    ctx.lineWidth=4;
+    for(let i=0;i<18;i++){
 
-    roughLine(
-        f.x,
-        f.y,
-        f.x,
-        f.y-180
-    );
+        drawCtx.beginPath();
 
-    const topY=f.y-180;
+        drawCtx.arc(
 
-    const size=65;
+            cx+(Math.random()-0.5)*18,
 
-    for(let i=0;i<6;i++){
+            cy+(Math.random()-0.5)*18,
 
-        petal(
-            f.x,
-            topY,
-            size,
-            i*Math.PI/3
-        );
-
-    }
-
-    for(let i=0;i<12;i++){
-
-        ctx.beginPath();
-
-        ctx.arc(
-            f.x+(Math.random()-0.5)*16,
-            topY+(Math.random()-0.5)*16,
             2,
+
             0,
+
             Math.PI*2
+
         );
 
-        ctx.stroke();
+        drawCtx.stroke();
 
     }
-
-}
-// ====================================
-// Part 2
-// رسم تدريجي ثم التحول للصورة
-// ====================================
-
-let frame = 0;
-let finished = false;
-
-function animate(){
-
-    frame++;
-
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    ctx.save();
-
-    ctx.strokeStyle="#74b8ff";
-    ctx.lineWidth=4;
-    ctx.shadowBlur=10;
-    ctx.shadowColor="#7ab7ff";
-
-    // رسم الساق تدريجياً
-
-    if(frame<120){
-
-        let h=frame/120;
-
-        roughLine(
-            flowerLeft.x,
-            flowerLeft.y,
-            flowerLeft.x,
-            flowerLeft.y-180*h
-        );
-
-    }else{
-
-        roughLine(
-            flowerLeft.x,
-            flowerLeft.y,
-            flowerLeft.x,
-            flowerLeft.y-180
-        );
-
-    }
-
-    // بعد ثانيتين تقريباً يبدأ رسم البتلات
-
-    if(frame>120){
-
-        let petals=Math.min(
-            6,
-            Math.floor((frame-120)/18)
-        );
-
-        for(let i=0;i<petals;i++){
-
-            petal(
-                flowerLeft.x,
-                flowerLeft.y-180,
-                65,
-                i*Math.PI/3
-            );
-
-        }
-
-    }
-
-    // الزهرة الثانية
-
-    if(frame>230){
-
-        let h=Math.min(1,(frame-230)/120);
-
-        roughLine(
-            flowerRight.x,
-            flowerRight.y,
-            flowerRight.x,
-            flowerRight.y-180*h
-        );
-
-    }
-
-    if(frame>350){
-
-        let petals=Math.min(
-            6,
-            Math.floor((frame-350)/18)
-        );
-
-        for(let i=0;i<petals;i++){
-
-            petal(
-                flowerRight.x,
-                flowerRight.y-180,
-                65,
-                i*Math.PI/3
-            );
-
-        }
-
-    }
-
-    ctx.restore();
-
-    // انتهاء الرسم
-
-    if(frame==620 && !finished){
-
-        finished=true;
-
-        cinematicTransition();
-
-    }
-
-    if(!finished)
-        requestAnimationFrame(animate);
-
-}
-
-animate();
-
-
-// ====================================
-// التحول السينمائي
-// ====================================
-
-function cinematicTransition(){
-
-    flash.classList.add("flash");
-
-    setTimeout(()=>{
-
-        img.classList.add("showImage");
-
-    },500);
-
-    setTimeout(()=>{
-
-        canvas.classList.add("fadeCanvas");
-
-    },1200);
-
-}
-// =========================================
-// Part 3
-// الصورة تصبح "حية"
-// =========================================
-
-let windTime = 0;
-
-function livingAnimation(){
-
-    windTime += 0.015;
-
-    const sway = Math.sin(windTime) * 2.5;
-    const scale = 1 + Math.sin(windTime*0.8)*0.01;
-
-    img.style.transform =
-        `translate(-50%,-50%)
-         rotate(${sway}deg)
-         scale(${scale})`;
-
-    requestAnimationFrame(livingAnimation);
-
-}
-
-// يبدأ بعد انتهاء الانتقال
-
-setTimeout(()=>{
-
-    img.classList.add("glow");
-
-    livingAnimation();
-
-    createParticles();
-
-},7000);
-
-
-// =========================================
-// جسيمات مضيئة
-// =========================================
-
-const particles=[];
-
-class Particle{
-
-    constructor(){
-
-        this.reset();
-
-        this.y=Math.random()*canvas.height;
-
-    }
-
-    reset(){
-
-        this.x=Math.random()*canvas.width;
-
-        this.y=canvas.height+20;
-
-        this.size=Math.random()*3+1;
-
-        this.speed=0.2+Math.random()*0.8;
-
-        this.alpha=.2+Math.random()*.8;
-
-    }
-
-    update(){
-
-        this.y-=this.speed;
-
-        this.x+=Math.sin(this.y/40)*0.3;
-
-        if(this.y<-20)
-            this.reset();
-
-    }
-
-    draw(){
-
-        ctx.beginPath();
-
-        ctx.fillStyle=`rgba(255,180,255,${this.alpha})`;
-
-        ctx.arc(
-            this.x,
-            this.y,
-            this.size,
-            0,
-            Math.PI*2
-        );
-
-        ctx.fill();
-
-    }
-
-}
-
-function createParticles(){
-
-    for(let i=0;i<120;i++){
-
-        particles.push(new Particle());
-
-    }
-
-    particleLoop();
-
-}
-
-function particleLoop(){
-
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    for(const p of particles){
-
-        p.update();
-
-        p.draw();
-
-    }
-
-    requestAnimationFrame(particleLoop);
 
 }
