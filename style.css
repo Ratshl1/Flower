@@ -1,166 +1,261 @@
+/* ==========================
+   I LOVE U CINEMATIC
+   STYLE.CSS
+   PART 1
+========================== */
+
 *{
     margin:0;
     padding:0;
     box-sizing:border-box;
 }
 
-html,body{
+html,
+body{
+
     width:100%;
     height:100%;
     overflow:hidden;
+
     background:#000;
-    font-family:Arial,Helvetica,sans-serif;
+
+    font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+
 }
 
 body{
-    display:flex;
-    justify-content:center;
-    align-items:center;
+
     position:relative;
+
 }
 
-#overlay{
+/* ==========================
+      BLACK BACKGROUND
+========================== */
+
+#background{
+
     position:fixed;
+
     inset:0;
-    background:#000;
+
+    background:
+    radial-gradient(
+        circle at center,
+        #090909 0%,
+        #000 55%,
+        #000 100%
+    );
+
     z-index:1;
+
 }
 
-#canvas{
-    position:absolute;
+/* ==========================
+      DRAWING CANVAS
+========================== */
+
+#drawCanvas{
+
+    position:fixed;
+
+    inset:0;
+
     width:100vw;
     height:100vh;
-    z-index:5;
+
+    z-index:10;
+
 }
 
-#finalImage{
+/* ==========================
+      PARTICLES
+========================== */
 
-    position:absolute;
+#particleCanvas{
 
-    left:50%;
-    top:50%;
+    position:fixed;
 
-    transform:
-        translate(-50%,-50%)
-        scale(.95);
+    inset:0;
 
-    width:min(90vw,900px);
+    width:100vw;
+    height:100vh;
 
-    opacity:0;
+    pointer-events:none;
 
-    filter:
-        brightness(.9)
-        drop-shadow(0 0 25px #ff5db5)
-        drop-shadow(0 0 60px #ff5db5);
+    z-index:40;
 
-    transition:
-        opacity 6s ease,
-        transform 6s ease,
-        filter 3s ease;
+}
+
+/* ==========================
+      IMAGE
+========================== */
+
+#imageContainer{
+
+    position:fixed;
+
+    inset:0;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
 
     z-index:20;
 
-    pointer-events:none;
+    opacity:0;
+
+    transition:
+
+    opacity 4s ease,
+
+    transform 4s ease;
 
 }
 
-#flash{
+#flowerImage{
+
+    width:min(92vw,900px);
+
+    user-select:none;
+
+    pointer-events:none;
+
+    transform-origin:center bottom;
+
+    filter:
+
+    brightness(.92)
+
+    drop-shadow(0 0 25px rgba(255,70,180,.45))
+
+    drop-shadow(0 0 70px rgba(255,70,180,.25));
+
+}
+/* ==========================
+      CINEMATIC LIGHT
+========================== */
+
+#light{
 
     position:fixed;
 
     inset:0;
 
-    background:white;
+    pointer-events:none;
+
+    z-index:50;
 
     opacity:0;
 
-    pointer-events:none;
+    background:
 
-    z-index:30;
-
-}
-
-.flash{
-
-    animation:flash .8s ease;
-
-}
-
-@keyframes flash{
-
-0%{
-opacity:0;
-}
-
-35%{
-opacity:.9;
-}
-
-100%{
-opacity:0;
-}
+    radial-gradient(
+        circle,
+        rgba(120,170,255,.35) 0%,
+        rgba(120,170,255,.12) 30%,
+        transparent 70%
+    );
 
 }
+
+/* ==========================
+      STATES
+========================== */
 
 .showImage{
 
     opacity:1 !important;
 
-    transform:
-        translate(-50%,-50%)
-        scale(1);
+}
+
+.hideDrawing{
+
+    opacity:0;
+
+    transition:opacity 3s ease;
 
 }
+
+/* ==========================
+      GLOW
+========================== */
 
 .glow{
 
     animation:
-        glow 4s ease-in-out infinite;
+
+    glowPulse 5s ease-in-out infinite;
 
 }
 
-@keyframes glow{
+@keyframes glowPulse{
 
 0%{
 
 filter:
-brightness(.9)
-drop-shadow(0 0 20px #ff66bb);
+
+brightness(.92)
+
+drop-shadow(0 0 20px rgba(255,120,220,.35))
+
+drop-shadow(0 0 50px rgba(120,180,255,.20));
 
 }
 
 50%{
 
 filter:
+
 brightness(1.08)
-drop-shadow(0 0 55px #ff66bb);
+
+drop-shadow(0 0 45px rgba(255,120,220,.65))
+
+drop-shadow(0 0 120px rgba(120,180,255,.45));
 
 }
 
 100%{
 
 filter:
-brightness(.9)
-drop-shadow(0 0 20px #ff66bb);
+
+brightness(.92)
+
+drop-shadow(0 0 20px rgba(255,120,220,.35))
+
+drop-shadow(0 0 50px rgba(120,180,255,.20));
 
 }
 
 }
+
+/* ==========================
+      SOFT WIND
+========================== */
 
 .wind{
 
     animation:
-        wind 7s ease-in-out infinite;
+
+    windMove 7s ease-in-out infinite;
 
 }
 
-@keyframes wind{
+@keyframes windMove{
 
 0%{
 
 transform:
-translate(-50%,-50%)
+
 rotate(0deg)
+
+translateY(0px)
+
 scale(1);
 
 }
@@ -168,26 +263,35 @@ scale(1);
 25%{
 
 transform:
-translate(-50.2%,-50.1%)
-rotate(.5deg)
-scale(1.002);
+
+rotate(.45deg)
+
+translateY(-1px)
+
+scale(1.003);
 
 }
 
 50%{
 
 transform:
-translate(-50%,-50%)
+
 rotate(-.6deg)
-scale(1.004);
+
+translateY(1px)
+
+scale(1.005);
 
 }
 
 75%{
 
 transform:
-translate(-49.8%,-50%)
-rotate(.4deg)
+
+rotate(.35deg)
+
+translateY(-1px)
+
 scale(1.002);
 
 }
@@ -195,26 +299,74 @@ scale(1.002);
 100%{
 
 transform:
-translate(-50%,-50%)
+
 rotate(0deg)
+
+translateY(0px)
+
 scale(1);
 
 }
 
 }
 
-.fadeCanvas{
+/* ==========================
+      LIGHT FLASH
+========================== */
+
+.flash{
 
     animation:
-        hideCanvas 5s forwards;
+
+    whiteFlash .9s ease;
 
 }
 
-@keyframes hideCanvas{
+@keyframes whiteFlash{
 
-to{
+0%{
 
 opacity:0;
+
+}
+
+35%{
+
+opacity:.9;
+
+}
+
+100%{
+
+opacity:0;
+
+}
+
+}
+
+/* ==========================
+      BLUR DURING TRANSITION
+========================== */
+
+.blur{
+
+    filter:
+
+    blur(5px)
+
+    brightness(1.15);
+
+}
+
+/* ==========================
+      MOBILE
+========================== */
+
+@media(max-width:700px){
+
+#flowerImage{
+
+    width:95vw;
 
 }
 
