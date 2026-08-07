@@ -4,27 +4,42 @@
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
 
 <title>I Love U</title>
 
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet"
+href="style.css">
 
 </head>
 
 <body>
 
-<div id="overlay"></div>
+<!-- الخلفية -->
+<div id="background"></div>
 
-<canvas id="canvas"></canvas>
+<!-- رسم الطفل -->
+<canvas id="drawCanvas"></canvas>
+
+<!-- جسيمات -->
+<canvas id="particleCanvas"></canvas>
+
+<!-- الصورة النهائية -->
+
+<div id="imageContainer">
 
 <img
-id="finalImage"
+id="flowerImage"
 src="IMG_5514.png"
-draggable="false"
->
+alt="Lilies">
 
-<div id="flash"></div>
+</div>
+
+<!-- طبقة الإضاءة -->
+
+<div id="light"></div>
 
 <script src="script.js"></script>
 
