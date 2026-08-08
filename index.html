@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>الزنبقة الزرقاء - نزيف ورسالة نيون</title>
+    <title>الزنبقة الزرقاء - رسالة نيون</title>
     <style>
         body {
             margin: 0;
@@ -42,7 +42,6 @@
 
         let isDrawingFlower = true;
         let isBleeding = false;
-        let bleedStep = 0;
 
         const MAX_RADIUS = Math.min(canvas.width, canvas.height) * 0.35; 
         const CENTER_GAP = 130; 
@@ -94,7 +93,6 @@
         const numPetals = 6;
         const ringsPerPetal = 120;
 
-        // *** إضافة نقاط نهاية البتلات للدم ***
         for (let p = 0; p < numPetals; p++) {
             let petalAngle = (p / numPetals) * 2 * Math.PI;
             for (let j = 0; j < ringsPerPetal; j++) {
@@ -123,11 +121,10 @@
                 let color = `rgba(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)}, ${alpha})`;
                 lilyPetals.push({ distance, angle, w, h, color });
 
-                // **تخزين الطرف الخارجي للبتلة (لنزول الدم)**
+                // **تخزين الطرف الخارجي للبتلة (لنزول الدم) - تم تعديله ليتوافق مع كود المستخدم**
                 if (j === ringsPerPetal - 1) {
                     let endX = cx + distance * Math.cos(angle);
                     let endY = cy + distance * Math.sin(angle);
-                    // إضافة تفرقة بسيطة بحيث لا تتراكم كل القطرات في نقطة واحدة
                     petalEndPoints.push({ 
                         startX: endX, 
                         startY: endY + 10, 
@@ -158,7 +155,7 @@
         drawQueue = drawQueue.concat(stamens);
 
         // -----------------------------------------
-        // 5. إعدادات الرسم البطيء للزهرة
+        // 5. إعدادات الرسم البطيء للزهرة (باستخدام setTimeout)
         // -----------------------------------------
         ctx.lineWidth = 5.5;
         ctx.shadowBlur = 12; 
@@ -170,112 +167,224 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // ============================================
-        // مرحلة النزيف (تسيل بسلاسة ووضوح من الأطراف)
+        // مرحلة النزيف - كود المستخدم (قطرات مع requestAnimationFrame)
         // ============================================
+        let bleedingDrops = [];
+        let bleedAnimationStart = 0;
+
         function startBleeding() {
             isDrawingFlower = false;
             isBleeding = true;
-            startBleedDrops();
+            // تجهيز قطرات مستقلة لكل بتلة
+            bleedingDrops = petalEndPoints.map((end, index) => {
+                return {
+                    startX: end.startX,
+                    startY: end.startY,
+                    // كل قطرة لها سرعة ومسار مختلف قليلاً
+                    x: end.startX,
+                    y: end.startY,
+                    speed: 1.8 + Math.random() * 0.8,
+                    // الميل باتجاه الأسفل مع انحراف بسيط
+                    drift: (Math.random() - 0.5) * 0.35,
+                    length: 0,
+                    maxLength: 130 + Math.random() * 90,
+                    size: 3.5 + Math.random() * 2.5,
+                    finished: false
+                };
+            });
+            bleedAnimationStart = performance.now();
+            requestAnimationFrame(animateBleeding);
         }
 
-        function startBleedDrops() {
-            // تكبير عدد الخطوات لجعل النزول بطيء وواضح
-            if (bleedStep > 90) {
-                isBleeding = false;
-                setTimeout(showLoveText, 600);
-                return;
-            }
-            
-            let t = bleedStep / 90;
-            
-            // إيقاف التوهج القديم لرسم القطرات بوضوح
-            ctx.shadowBlur = 30;
-            ctx.shadowColor = 'rgba(60, 140, 255, 0.7)';
-
-            // نقطة النهاية الموحدة لجميع قطرات الدم (فوق الجذع مباشرة)
-            let targetY = cy + 155; 
-
-            for (let p = 0; p < petalEndPoints.length; p++) {
-                let end = petalEndPoints[p];
-                
-                // حساب مسار النزول الحقيقي من رأس البتلة إلى أسفل الجملة
-                let currentX = end.startX + (cx - end.startX) * t * 0.7; // تتجه للمركز قليلاً
-                let currentY = end.startY + (targetY - end.startY) * t;   // تنزلق للأسفل بانسيابية
-                
-                // رسم القطرة (شكل بيضاوي يتغير حجمه)
-                let size = 5 + t * 5;
+        function animateBleeding(timestamp) {
+            if (!isBleeding) return;
+            // الزمن منذ بداية النزيف
+            const elapsed = timestamp - bleedAnimationStart;
+            ctx.save();
+            // توهج خفيف فقط
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = 'rgba(40, 130, 255, 0.65)';
+            let allFinished = true;
+            for (let i = 0; i < bleedingDrops.length; i++) {
+                const drop = bleedingDrops[i];
+                if (drop.finished) continue;
+                allFinished = false;
+                // تأخير بسيط بين كل قطرة وأخرى
+                const delay = i * 120;
+                if (elapsed < delay) {
+                    continue;
+                }
+                const localTime = elapsed - delay;
+                // مقدار النزول
+                drop.length = localTime * 0.075 * drop.speed;
+                if (drop.length >= drop.maxLength) {
+                    drop.length = drop.maxLength;
+                    drop.finished = true;
+                }
+                // الحركة من رأس البتلة إلى الأسفل
+                drop.x =
+                    drop.startX +
+                    Math.sin(drop.length * 0.025 + i) * 8 +
+                    drop.drift * drop.length;
+                drop.y = drop.startY + drop.length;
+                // -------------------------------
+                // رسم مجرى الدم خلف القطرة
+                // -------------------------------
+                const trailLength = Math.min(drop.length, 65);
+                const gradient = ctx.createLinearGradient(
+                    drop.x,
+                    drop.y - trailLength,
+                    drop.x,
+                    drop.y
+                );
+                gradient.addColorStop(
+                    0,
+                    'rgba(30, 110, 255, 0)'
+                );
+                gradient.addColorStop(
+                    0.45,
+                    'rgba(40, 130, 255, 0.35)'
+                );
+                gradient.addColorStop(
+                    1,
+                    'rgba(45, 145, 255, 0.8)'
+                );
                 ctx.beginPath();
-                ctx.ellipse(currentX, currentY, size, size + 3, end.angle, 0, Math.PI * 2);
-                
-                // توهج وشفافية عالية عند البداية، ثم تثبت
-                let alpha = Math.min(0.9, 0.95 - t * 0.2);
-                ctx.fillStyle = `rgba(40, 140, 255, ${alpha})`;
+                ctx.moveTo(
+                    drop.x,
+                    drop.y - trailLength
+                );
+                ctx.lineTo(
+                    drop.x,
+                    drop.y
+                );
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = drop.size * 0.8;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+                // -------------------------------
+                // رسم القطرة نفسها
+                // -------------------------------
+                ctx.beginPath();
+                ctx.ellipse(
+                    drop.x,
+                    drop.y,
+                    drop.size,
+                    drop.size * 1.7,
+                    0,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fillStyle = 'rgba(40, 145, 255, 0.95)';
                 ctx.fill();
             }
-            
-            bleedStep++;
-            setTimeout(startBleedDrops, 70);
+            ctx.restore();
+            // عندما تنتهي كل القطرات
+            if (allFinished) {
+                isBleeding = false;
+                // انتظار بسيط قبل ظهور الجملة
+                setTimeout(showLoveText, 700);
+                return;
+            }
+            requestAnimationFrame(animateBleeding);
         }
 
         // ============================================
-        // مرحلة الجملة (نيون واضح لا يتداخل)
+        // مرحلة الجملة - كتابة مرة واحدة (بدون تداخل)
         // ============================================
         function showLoveText() {
-            let text = "I love u samo";
-            
-            // إيقاف تأثيرات التوهج العالية على النص، لأنها سبب التداخل
-            ctx.shadowBlur = 0; 
-            
-            ctx.font = "bold 48px 'Brush Script MT', 'Great Vibes', 'Comic Sans MS', cursive, sans-serif";
+            const text = "I love u samo";
+            const yPos = cy + 160;
+            ctx.font =
+                "bold 48px 'Brush Script MT', 'Great Vibes', 'Comic Sans MS', cursive, sans-serif";
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            
-            let yPos = cy + 160; // تحت الزهرة، فوق الجذع
+            // -----------------------------------------
+            // نستخدم Canvas منفصل للنص
+            // حتى لا تتراكم الحروف فوق بعضها
+            // -----------------------------------------
+            const textCanvas = document.createElement('canvas');
+            textCanvas.width = canvas.width;
+            textCanvas.height = canvas.height;
+            const textCtx = textCanvas.getContext('2d');
+            textCtx.font = ctx.font;
+            textCtx.textAlign = 'center';
+            textCtx.textBaseline = 'middle';
             let step = 0;
-            
-            let textInterval = setInterval(() => {
+            const textInterval = setInterval(() => {
+                // تنظيف منطقة النص فقط
+                textCtx.clearRect(
+                    0,
+                    yPos - 70,
+                    canvas.width,
+                    140
+                );
+                const partialText = text.substring(0, step);
+                // -------------------------------
+                // الظل الخلفي
+                // -------------------------------
+                textCtx.shadowBlur = 0;
+                textCtx.fillStyle = '#101025';
+                textCtx.fillText(
+                    partialText,
+                    cx - 2,
+                    yPos + 2
+                );
+                // -------------------------------
+                // النص الأزرق النيون
+                // -------------------------------
+                textCtx.shadowBlur = 18;
+                textCtx.shadowColor = '#3399ff';
+                textCtx.fillStyle = '#3399ff';
+                textCtx.fillText(
+                    partialText,
+                    cx,
+                    yPos
+                );
+                // -------------------------------
+                // رسم الـCanvas الخاص بالنص
+                // فوق الـCanvas الأساسي
+                // -------------------------------
+                ctx.clearRect(
+                    0,
+                    yPos - 70,
+                    canvas.width,
+                    140
+                );
+                ctx.drawImage(
+                    textCanvas,
+                    0,
+                    0
+                );
+                step++;
+                // إيقاف الكتابة بعد اكتمال الجملة
                 if (step > text.length) {
                     clearInterval(textInterval);
-                    return;
+                    // إبقاء الجملة كما هي
+                    ctx.clearRect(
+                        0,
+                        yPos - 70,
+                        canvas.width,
+                        140
+                    );
+                    ctx.drawImage(
+                        textCanvas,
+                        0,
+                        0
+                    );
                 }
-                
-                let partialText = text.substring(0, step);
-                
-                // **تقنية النيون الصافية (رسم النص مرتين)**
-                // 1. رسم ظل داكن خلف النص ليعطيه حافة (يعالج مشكلة التداخل)
-                ctx.fillStyle = '#1a1a3a'; 
-                ctx.fillText(partialText, cx - 1, yPos - 1);
-                ctx.fillText(partialText, cx + 1, yPos + 1);
-                
-                // 2. رسم النص باللون النيون الأزرق الزاهي في المنتصف
-                ctx.fillStyle = '#3399ff'; // لون نيون زاهي
-                ctx.fillText(partialText, cx, yPos);
-                
-                // **جعل القطرات الصغيرة تنثر حول الحروف (الدم هو من يرسم)**
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#4d94ff';
-                for (let d = 0; d < 6; d++) {
-                    let dropX = cx + (Math.random() - 0.5) * (step * 25);
-                    let dropY = yPos + (Math.random() - 0.5) * 25;
-                    ctx.beginPath();
-                    ctx.arc(dropX, dropY, 2 + Math.random() * 4, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(40, 160, 255, ${0.6 + Math.random() * 0.4})`;
-                    ctx.fill();
-                }
-                ctx.shadowBlur = 0; // إعادة التعيين للخطوة القادمة
-                
-                step++;
-            }, 150); // كتابة حرف كل 150 مللي ثانية
+            }, 150);
         }
 
         // ============================================
-        // حلقة الرسم الرئيسية
+        // حلقة الرسم الرئيسية (الزهرة تستخدم setTimeout)
         // ============================================
         function drawItemFromQueue() {
             if (!isDrawingFlower) return;
 
             if (currentIndex >= drawQueue.length) {
                 isDrawingFlower = false;
+                // تبديل مرحلة الرسم إلى النزيف
                 setTimeout(startBleeding, 500);
                 return;
             }
@@ -326,9 +435,8 @@
         // بدء الرسم
         setTimeout(drawItemFromQueue, 600);
 
-        // إعادة الضبط التلقائي عند تغيير حجم الشاشة
         window.addEventListener('resize', () => {
-            // لأفضل تجربة يرجى تحديث الصفحة.
+            // لأفضل تجربة يرجى تحديث الصفحة عند تغيير الحجم.
         });
 
     </script>
