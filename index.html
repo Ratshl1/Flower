@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الزهرة الزرقاء الغامضة ورسالة الدم</title>
+    <title>الزنبقة الزرقاء ورسالة النزيف</title>
     <style>
         body {
             margin: 0;
@@ -14,61 +14,19 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            font-family: sans-serif;
         }
         canvas {
             display: block;
-            z-index: 1;
-        }
-        #start-overlay {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: transparent;
-            z-index: 10;
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            padding-bottom: 50px;
-            pointer-events: none;
-        }
-        #start-btn {
-            background: rgba(50, 40, 80, 0.6);
-            border: 1px solid rgba(100, 80, 150, 0.5);
-            padding: 15px 30px;
-            color: #a0a0c0;
-            font-size: 18px;
-            border-radius: 30px;
-            cursor: pointer;
-            pointer-events: auto;
-            backdrop-filter: blur(5px);
-            box-shadow: 0 0 20px rgba(50, 40, 80, 0.3);
-            transition: all 0.3s;
-            z-index: 20;
-            display: none; /* سيظهر فقط إذا منع المتصفح الصوت */
-        }
-        #start-btn:hover {
-            background: rgba(80, 60, 150, 0.7);
-            color: white;
-            box-shadow: 0 0 30px rgba(80, 60, 180, 0.5);
+            background-color: #04020a;
         }
     </style>
 </head>
 <body>
     <canvas id="flowerCanvas"></canvas>
-    <div id="start-overlay"><button id="start-btn">انقر لتشغيل الموسيقى والرسم</button></div>
-    
-    <!-- موسيقى بيانو هادئة -->
-    <audio id="bgMusic" loop>
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-        متصفحك لا يدعم الصوت.
-    </audio>
 
     <script>
         const canvas = document.getElementById('flowerCanvas');
         const ctx = canvas.getContext('2d');
-        const bgMusic = document.getElementById('bgMusic');
-        const startBtn = document.getElementById('start-btn');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -76,20 +34,20 @@
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
 
-        // لإدارة مراحل الرسم
         let drawQueue = [];
         let currentIndex = 0;
-        let isDrawingFlower = true; // مرحلة رسم الزهرة
-        let isBleeding = false; // مرحلة النزيف
-        let isTextShowing = false; // مرحلة النص
-        let bloodParticles = []; // جزيئات الدم المتنازلة
+        
+        // متغيرات مراحل الرسم
+        let isDrawingFlower = true;
+        let isBleeding = false;
+        let bleedStep = 0;
 
-        // معامل التمدد الآمن
+        // الحجم الآمن للزهرة
         const MAX_RADIUS = Math.min(canvas.width, canvas.height) * 0.35; 
         const CENTER_GAP = 130; 
 
         // -----------------------------------------
-        // 1. رسم الساق
+        // 1. توليد الساق المتصلة
         // -----------------------------------------
         function generateStemPoints() {
             const points = [];
@@ -129,7 +87,7 @@
         drawQueue = drawQueue.concat(generateReceptacle());
 
         // -----------------------------------------
-        // 3. الأسدية الفضية (الخطوط البيضاء في المنتصف كما في الصورة)
+        // 3. الأسدية الفضية
         // -----------------------------------------
         const stamens = [];
         for (let s = 0; s < 6; s++) {
@@ -137,7 +95,6 @@
             for (let j = 0; j < 35; j++) {
                 let dist = 10 + j * 2.2;
                 if (dist > MAX_RADIUS * 0.65) break;
-                // جعل خطوط الأسدية فضية/بيضاء باهتة لتطابق الصورة
                 let color = j < 30 ? 
                     `rgba(200, 190, 230, ${0.25 - (j/35)*0.15})` : 
                     `rgba(255, 255, 255, 0.3)`;
@@ -167,7 +124,6 @@
                 let w = 10 + shapeFactor * 25; 
                 let h = 15 + shapeFactor * 30; 
                 
-                // --- تعديل اللون ليكون الأطراف سوداء قليلاً ---
                 let alpha = 0.25 - (t * 0.20); 
                 alpha = Math.max(0.02, alpha);
                 
@@ -175,12 +131,11 @@
                 let g = 30 + t * 60;
                 let b = 100 + t * 80;
                 
-                // تحويل الألوان إلى الأسود عند الأطراف (t=1 => black)
+                // تحويل الألوان إلى الأسود عند الأطراف
                 let fadeToBlack = Math.pow(t, 2.5);
                 r = r * (1 - fadeToBlack) + 5 * fadeToBlack;
                 g = g * (1 - fadeToBlack) + 5 * fadeToBlack;
                 b = b * (1 - fadeToBlack) + 5 * fadeToBlack;
-                // ---------------------------------------------
                 
                 let color = `rgba(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)}, ${alpha})`;
                 lilyPetals.push({ distance, angle, w, h, color });
@@ -190,7 +145,7 @@
         drawQueue = drawQueue.concat(lilyPetals);
 
         // -----------------------------------------
-        // 5. أنيميشن الرسم البطيء
+        // 5. أنيميشن الرسم البطيء للزهرة
         // -----------------------------------------
         ctx.lineWidth = 5.5;
         ctx.shadowBlur = 15; 
@@ -208,128 +163,86 @@
         function startBleeding() {
             isDrawingFlower = false;
             isBleeding = true;
-            bleedDropDown();
+            startBleedDrops(); // بدء النزيف للأسفل
         }
 
-        let bleedIndex = 0;
-        function bleedDropDown() {
-            if (bleedIndex > 40) {
+        // يبدأ النزيف من أسفل الساق وينزل للأسفل
+        function startBleedDrops() {
+            if (bleedStep > 40) {
                 isBleeding = false;
-                setTimeout(showLoveText, 800); // تأخير بسيط قبل ظهور النص
+                setTimeout(showLoveText, 600); // بعد النزيف، تظهر الرسالة
                 return;
             }
             
-            let t = bleedIndex / 40;
-            // تحديد نقطة بداية النزيف (قاعدة الساق)
+            let t = bleedStep / 40;
+            // نقطة بداية النزيف: أسفل الساق تماماً
             const startPoint = stemPoints[stemPoints.length - 1];
             
+            // رسم قطرات الدم على شكل حلقات بيضاوية صغيرة متراكمة
             for (let i = 0; i < 6; i++) {
                 let spread = (i - 3) * 5;
-                let x = startPoint.x + spread - (t * 15);
-                let y = startPoint.y + 10 + (t * 180) + (Math.sin(i + bleedIndex) * 5);
+                let x = startPoint.x + spread - (t * 12); // الميلان مع الساق
+                let y = startPoint.y + 15 + (t * 200); // النزول للأسفل
                 
-                // رسم قطرات الدم الأزرق الغامق كحلقات بيضاوية
                 ctx.save();
                 ctx.beginPath();
-                ctx.ellipse(x, y, 3 + t * 5, 5 + t * 8, 0, 0, Math.PI * 2);
-                let alpha = 0.7 - t;
-                ctx.fillStyle = `rgba(30, 20, 60, ${alpha})`;
+                ctx.ellipse(x, y, 5 + t * 4, 8 + t * 6, 0, 0, Math.PI * 2);
+                
+                // لون الدم الأزرق الغامق، بهتان يزداد كلما ابتعد
+                let alpha = 0.6 - t * 0.4;
+                ctx.fillStyle = `rgba(20, 15, 50, ${Math.max(0.1, alpha)})`;
                 ctx.shadowBlur = 20;
-                ctx.shadowColor = 'rgba(30, 20, 60, 0.4)';
+                ctx.shadowColor = 'rgba(20, 15, 50, 0.5)';
                 ctx.fill();
                 ctx.restore();
             }
             
-            bleedIndex++;
-            setTimeout(bleedDropDown, 100);
+            bleedStep++;
+            setTimeout(startBleedDrops, 100); // نزيف بطيء جداً
         }
 
         // ----------------------
         // مرحلة الرسالة (I love u samo)
         // ----------------------
         function showLoveText() {
-            isTextShowing = true;
             let text = "I love u samo";
-            ctx.shadowBlur = 30;
-            ctx.shadowColor = 'rgba(100, 80, 150, 0.5)';
-            ctx.font = "bold 60px 'Brush Script MT', 'Great Vibes', cursive, 'Comic Sans MS'";
+            // إعادة ضبط التوهج للرسالة
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = 'rgba(40, 30, 70, 0.4)';
+            
+            // استخدام خط يشبه خط اليد
+            ctx.font = "bold 55px 'Brush Script MT', 'Great Vibes', cursive";
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            let yPos = cy + 420 + 50; // تحت الساق مباشرة
+            let yPos = cy + 420; // أسفل نقطة نهاية النزيف
             let step = 0;
             
             let textInterval = setInterval(() => {
                 if (step > text.length) {
                     clearInterval(textInterval);
-                    startParticles(); // بدء الجماليات بعد النص
                     return;
                 }
+                
+                // كتابة الحروف المتراكمة
                 let partialText = text.substring(0, step);
                 
-                // رسم تأثير الدم المتساقط على الحروف
-                ctx.fillStyle = `rgba(40, 30, 80, ${0.7 - step/text.length * 0.2})`;
-                
-                // إضافة بعض الانزلاق السفلي لبعض الحروف لتشبه الدم
-                ctx.fillText(partialText, cx, yPos - Math.random() * 5);
-                ctx.restore();
+                ctx.fillStyle = `rgba(40, 25, 70, ${0.7})`;
+                ctx.fillText(partialText, cx, yPos);
                 
                 step++;
-            }, 150);
-            
-            // إرجاع التوهج الافتراضي
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = 'rgba(30, 20, 60, 0.2)'; 
-        }
-
-        // ----------------------
-        // جماليات إضافية (جسيمات متوهجة)
-        // ----------------------
-        let particleSystem = [];
-
-        function startParticles() {
-            for (let i = 0; i < 50; i++) {
-                particleSystem.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    vx: (Math.random() - 0.5) * 0.5,
-                    vy: (Math.random() - 0.5) * 0.5,
-                    size: Math.random() * 3 + 1,
-                    alpha: Math.random() * 0.5 + 0.1
-                });
-            }
-            animateParticles();
-        }
-
-        function animateParticles() {
-            ctx.fillStyle = 'rgba(4, 2, 10, 0.05)'; // تلاشي خفي للجسيمات
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            particleSystem.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                if (p.x < 0) p.x = canvas.width;
-                if (p.x > canvas.width) p.x = 0;
-                if (p.y < 0) p.y = canvas.height;
-                if (p.y > canvas.height) p.y = 0;
-
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(150, 130, 200, ${p.alpha})`;
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = 'rgba(150, 130, 200, 0.2)';
-                ctx.fill();
-            });
-            requestAnimationFrame(animateParticles);
+            }, 180); // بطء كتابة الحروف
         }
 
         // ----------------------
         // حلقة الرسم الرئيسية
         // ----------------------
         function drawItemFromQueue() {
+            if (!isDrawingFlower) return;
+
             if (currentIndex >= drawQueue.length) {
-                // انتهى رسم الزهرة، ابدأ النزيف
-                setTimeout(startBleeding, 100);
+                isDrawingFlower = false;
+                setTimeout(startBleeding, 400); // عند انتهاء الزهرة، انتظر قليلاً ثم ابدأ النزيف
                 return;
             }
 
@@ -341,7 +254,7 @@
                 ctx.lineTo(stemPoints[item.idx].x, stemPoints[item.idx].y);
                 ctx.strokeStyle = 'rgba(35, 45, 60, 0.7)';
                 ctx.lineWidth = 6.5;
-                ctx.shadowBlur = 0;
+                ctx.shadowBlur = 0; // الساق بدون توهج
                 ctx.stroke();
                 ctx.shadowBlur = 15;
             } 
@@ -366,7 +279,7 @@
                 ctx.beginPath();
                 ctx.ellipse(0, 0, ring.w, ring.h, 0, 0, Math.PI * 2);
                 ctx.strokeStyle = ring.color;
-                ctx.lineWidth = ring.distance < 30 ? 7 : 5; // خطوط عريضة
+                ctx.lineWidth = ring.distance < 30 ? 7 : 5; // حلقات عريضة
                 ctx.stroke();
                 
                 ctx.restore();
@@ -376,36 +289,12 @@
             setTimeout(drawItemFromQueue, DRAW_DELAY_MS);
         }
 
-        // -----------------------------------------
-        // تشغيل الصوت عند التفاعل الأول
-        // -----------------------------------------
-        function startApp() {
-            bgMusic.volume = 0.3; // حجم الموسيقى هادئ جداً
-            bgMusic.play().catch(() => {
-                startBtn.style.display = "block";
-            });
-            startBtn.style.display = "none";
-            setTimeout(drawItemFromQueue, 600);
-        }
+        // بدء الرسم
+        setTimeout(drawItemFromQueue, 600);
 
-        document.body.addEventListener('click', () => {
-            if (bgMusic.paused) {
-                startApp();
-            }
-        });
-
-        startBtn.addEventListener('click', () => {
-            startApp();
-        });
-
-        // محاولة تشغيل الصوت تلقائياً
-        startApp();
-
-        // ----------------------
-        // إعادة ضبط الشاشة
-        // ----------------------
+        // إعادة ضبط الشاشة (يُفضل تحديث الصفحة لتجنب الأخطاء)
         window.addEventListener('resize', () => {
-            // يُفضل تحديث الصفحة للحصول على أفضل تناسب
+            // للحصول على أفضل تجربة، لو سمحت قم بتحديث الصفحة (F5) عند تغيير حجم النافذة.
         });
 
     </script>
