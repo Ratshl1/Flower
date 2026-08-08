@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta name="viewport"
@@ -59,22 +61,16 @@ canvas {
     z-index: 2;
 }
 
-#textCanvas {
-    z-index: 3;
-}
-
 </style>
+
 </head>
 
 <body>
 
 <div id="scene">
 
-    <canvas id="flowerCanvas"></canvas>
-
-    <canvas id="bloodCanvas"></canvas>
-
-    <canvas id="textCanvas"></canvas>
+<canvas id="flowerCanvas"></canvas>
+<canvas id="bloodCanvas"></canvas>
 
 </div>
 
@@ -86,24 +82,21 @@ canvas {
 ========================================================= */
 
 const flowerCanvas =
-    document.getElementById("flowerCanvas");
+document.getElementById("flowerCanvas");
 
 const bloodCanvas =
-    document.getElementById("bloodCanvas");
-
-const textCanvas =
-    document.getElementById("textCanvas");
-
+document.getElementById("bloodCanvas");
 
 const flowerCtx =
-    flowerCanvas.getContext("2d");
+flowerCanvas.getContext("2d");
 
 const bloodCtx =
-    bloodCanvas.getContext("2d");
+bloodCanvas.getContext("2d");
 
-const textCtx =
-    textCanvas.getContext("2d");
 
+/* =========================================================
+   GLOBAL
+========================================================= */
 
 let W;
 let H;
@@ -113,13 +106,7 @@ let cy;
 
 let dpr;
 
-
-/* =========================================================
-   FLOWER VARIABLES
-========================================================= */
-
 let drawQueue = [];
-
 let currentIndex = 0;
 
 let petalEndPoints = [];
@@ -129,6 +116,8 @@ let stemPoints = [];
 let isDrawingFlower = true;
 
 let isBleeding = false;
+
+let drops = [];
 
 
 /* =========================================================
@@ -146,15 +135,7 @@ function resizeCanvas() {
             2
         );
 
-
-    const canvases = [
-        flowerCanvas,
-        bloodCanvas,
-        textCanvas
-    ];
-
-
-    canvases.forEach(canvas => {
+    [flowerCanvas, bloodCanvas].forEach(canvas => {
 
         canvas.width =
             Math.floor(W * dpr);
@@ -188,18 +169,17 @@ function resizeCanvas() {
         0
     );
 
-    textCtx.setTransform(
-        dpr,
-        0,
-        0,
-        dpr,
-        0,
-        0
-    );
-
 
     cx = W / 2;
-    cy = H / 2;
+
+    /*
+       جعل مركز الوردة أعلى قليلاً
+       حتى يكون هناك مكان للجملة
+       والجذع.
+    */
+
+    cy =
+        H * 0.43;
 
 
     buildFlower();
@@ -223,15 +203,10 @@ function buildFlower() {
         Math.min(W, H) * 0.35;
 
 
-    /*
-       هذه المسافة هي نقطة اتصال
-       الزهرة بالجذع.
-    */
-
     const CENTER_GAP =
         Math.min(
-            125,
-            H * 0.17
+            115,
+            H * 0.15
         );
 
 
@@ -243,30 +218,33 @@ function buildFlower() {
 
         const points = [];
 
-        const steps = 170;
+        const steps = 180;
 
 
         /*
-           يبدأ الجذع من أسفل الشاشة
-           ويصعد حتى مركز الزهرة تقريبًا.
+           أهم تعديل:
 
-           سابقًا كان يتوقف قبل الزهرة،
-           لذلك ظهر منفصلًا.
+           الجذع يبدأ من أسفل الشاشة
+           وينتهي داخل قاعدة الزهرة نفسها.
         */
 
-        const bottomY =
+        const startY =
             Math.min(
-                H - 5,
-                cy + 390
+                H - 15,
+                cy + 380
             );
 
 
-        const topY =
+        const endY =
             cy + CENTER_GAP - 5;
 
 
         const startX =
-            cx + 20;
+            cx + 15;
+
+
+        const endX =
+            cx;
 
 
         for (
@@ -280,33 +258,30 @@ function buildFlower() {
 
 
             /*
-               انحناء خفيف للجذع
+               منحنى طبيعي للجذع
             */
 
             const curve =
                 Math.sin(
                     t * Math.PI
-                ) * 18;
+                ) * 24;
 
 
             const x =
-                startX -
-                t * 22 +
+                startX +
+                (endX - startX) * t
+                -
                 curve;
 
 
             const y =
-                bottomY -
-                t *
-                (
-                    bottomY -
-                    topY
-                );
+                startY +
+                (endY - startY) * t;
 
 
             points.push({
-                x: x,
-                y: y
+                x,
+                y
             });
         }
 
@@ -318,6 +293,10 @@ function buildFlower() {
     stemPoints =
         generateStemPoints();
 
+
+    /*
+       رسم الجذع تدريجياً
+    */
 
     for (
         let i = 1;
@@ -338,12 +317,12 @@ function buildFlower() {
 
     for (
         let i = 0;
-        i < 85;
+        i < 100;
         i++
     ) {
 
         const t =
-            i / 84;
+            i / 99;
 
 
         const yOffset =
@@ -352,8 +331,8 @@ function buildFlower() {
 
 
         const xOffset =
-            -16 +
-            t * 32;
+            -17 +
+            t * 34;
 
 
         drawQueue.push({
@@ -369,19 +348,20 @@ function buildFlower() {
                 yOffset,
 
             w:
-                15 +
-                t * 27,
+                16 +
+                t * 28,
 
             h:
-                10 +
-                t * 16,
+                11 +
+                t * 17,
 
             color:
                 `rgba(
                     20,
                     25,
-                    45,
-                    ${0.42 - t * 0.15}
+                    55,
+                    ${0.45 -
+                    t * 0.18}
                 )`
         });
     }
@@ -395,7 +375,7 @@ function buildFlower() {
 
     const numPetals = 6;
 
-    const ringsPerPetal = 130;
+    const ringsPerPetal = 135;
 
 
     for (
@@ -451,7 +431,7 @@ function buildFlower() {
                 angleOffset;
 
 
-            const shapeFactor =
+            const shape =
                 Math.sin(
                     t * Math.PI
                 );
@@ -459,12 +439,12 @@ function buildFlower() {
 
             const w =
                 10 +
-                shapeFactor * 25;
+                shape * 25;
 
 
             const h =
                 15 +
-                shapeFactor * 30;
+                shape * 30;
 
 
             let alpha =
@@ -521,17 +501,13 @@ function buildFlower() {
 
             lilyPetals.push({
 
-                distance:
-                    distance,
+                distance,
 
-                angle:
-                    angle,
+                angle,
 
-                w:
-                    w,
+                w,
 
-                h:
-                    h,
+                h,
 
                 color:
                     `rgba(
@@ -557,7 +533,7 @@ function buildFlower() {
 
 
         /*
-           نقطة نزول الدم
+           نقطة خروج القطرة
         */
 
         petalEndPoints.push({
@@ -576,8 +552,8 @@ function buildFlower() {
 
     lilyPetals.sort(
         (a, b) =>
-            a.distance -
-            b.distance
+        a.distance -
+        b.distance
     );
 
 
@@ -600,7 +576,7 @@ function buildFlower() {
         s++
     ) {
 
-        const stamenAngle =
+        const angle =
             (
                 s / 6
             ) *
@@ -634,11 +610,9 @@ function buildFlower() {
                 distance:
                     dist,
 
-                angle:
-                    stamenAngle,
+                angle,
 
-                w:
-                    2,
+                w: 2,
 
                 h:
                     j < 30
@@ -647,25 +621,17 @@ function buildFlower() {
 
                 color:
                     j < 30
-
                     ?
-
                     `rgba(
                         200,
                         190,
                         230,
                         ${0.25 -
-                        (j / 35) * 0.15}
+                        (j / 35) *
+                        0.15}
                     )`
-
                     :
-
-                    "rgba(
-                        255,
-                        255,
-                        255,
-                        0.3
-                    )"
+                    "rgba(255,255,255,0.3)"
             });
         }
     }
@@ -673,8 +639,8 @@ function buildFlower() {
 
     stamens.sort(
         (a, b) =>
-            a.distance -
-            b.distance
+        a.distance -
+        b.distance
     );
 
 
@@ -703,6 +669,14 @@ function drawItemFromQueue() {
 
         isDrawingFlower =
             false;
+
+
+        /*
+           بعد انتهاء الوردة
+           نضيف تفاصيل الجذع.
+        */
+
+        drawStemDetails();
 
 
         setTimeout(
@@ -742,10 +716,6 @@ function drawItemFromQueue() {
             ];
 
 
-        /*
-           جسم الجذع الأساسي
-        */
-
         flowerCtx.beginPath();
 
 
@@ -761,12 +731,16 @@ function drawItemFromQueue() {
         );
 
 
+        /*
+           الجذع الأساسي
+        */
+
         flowerCtx.strokeStyle =
-            "rgba(31,42,54,0.95)";
+            "rgba(30,45,60,0.95)";
 
 
         flowerCtx.lineWidth =
-            9;
+            8;
 
 
         flowerCtx.lineCap =
@@ -774,18 +748,19 @@ function drawItemFromQueue() {
 
 
         flowerCtx.shadowBlur =
-            3;
+            4;
 
 
         flowerCtx.shadowColor =
-            "rgba(20,30,45,0.5)";
+            "rgba(20,80,120,0.3)";
 
 
         flowerCtx.stroke();
 
 
         /*
-           الخط الداخلي للجذع
+           خط داخلي يعطي الجذع
+           تفاصيل وعمق.
         */
 
         flowerCtx.beginPath();
@@ -804,87 +779,14 @@ function drawItemFromQueue() {
 
 
         flowerCtx.strokeStyle =
-            "rgba(65,78,88,0.65)";
+            "rgba(80,105,120,0.38)";
 
 
         flowerCtx.lineWidth =
             2;
 
 
-        flowerCtx.shadowBlur =
-            0;
-
-
         flowerCtx.stroke();
-
-
-        /*
-           تفاصيل صغيرة / عروق على الجذع
-        */
-
-        if (
-            item.idx % 13 === 0
-        ) {
-
-            const px =
-                current.x;
-
-
-            const py =
-                current.y;
-
-
-            flowerCtx.beginPath();
-
-
-            flowerCtx.moveTo(
-                px,
-                py
-            );
-
-
-            flowerCtx.lineTo(
-                px - 9,
-                py - 8
-            );
-
-
-            flowerCtx.strokeStyle =
-                "rgba(70,82,92,0.42)";
-
-
-            flowerCtx.lineWidth =
-                1.3;
-
-
-            flowerCtx.stroke();
-
-
-            flowerCtx.beginPath();
-
-
-            flowerCtx.moveTo(
-                px + 1,
-                py + 3
-            );
-
-
-            flowerCtx.lineTo(
-                px + 8,
-                py - 5
-            );
-
-
-            flowerCtx.strokeStyle =
-                "rgba(15,24,34,0.55)";
-
-
-            flowerCtx.lineWidth =
-                1;
-
-
-            flowerCtx.stroke();
-        }
     }
 
 
@@ -932,7 +834,7 @@ function drawItemFromQueue() {
 
 
     /* =====================================================
-       PETALS / STAMENS
+       PETALS + STAMENS
     ===================================================== */
 
     else {
@@ -1022,18 +924,504 @@ function drawItemFromQueue() {
 
 
 /* =========================================================
-   BLOOD
+   STEM DETAILS
 ========================================================= */
 
-let bloodDrops = [];
+function drawStemDetails() {
+
+    /*
+       هذا الجزء يجعل الجذع يبدو
+       متصلاً بقاعدة الوردة فعلياً.
+    */
+
+    const top =
+        stemPoints[
+            stemPoints.length - 1
+        ];
 
 
-/*
-   نستخدم نقاط صغيرة جدًا.
+    flowerCtx.save();
 
-   كل قطرة تبدأ من إحدى البتلات
-   وتنزل ببطء.
-*/
+
+    /* اتصال سميك مع قاعدة الزهرة */
+
+    flowerCtx.beginPath();
+
+
+    flowerCtx.moveTo(
+        top.x,
+        top.y + 12
+    );
+
+
+    flowerCtx.bezierCurveTo(
+
+        top.x - 12,
+        top.y + 2,
+
+        cx - 28,
+        cy + 100,
+
+        cx,
+        cy + 72
+    );
+
+
+    flowerCtx.strokeStyle =
+        "rgba(38,55,75,0.9)";
+
+
+    flowerCtx.lineWidth =
+        13;
+
+
+    flowerCtx.lineCap =
+        "round";
+
+
+    flowerCtx.shadowBlur =
+        8;
+
+
+    flowerCtx.shadowColor =
+        "rgba(20,70,130,0.3)";
+
+
+    flowerCtx.stroke();
+
+
+    /*
+       عروق طولية
+    */
+
+    flowerCtx.beginPath();
+
+
+    for (
+        let i = 20;
+        i < stemPoints.length - 5;
+        i += 8
+    ) {
+
+        const p =
+            stemPoints[i];
+
+
+        const next =
+            stemPoints[i + 3];
+
+
+        flowerCtx.moveTo(
+            p.x + 2,
+            p.y
+        );
+
+
+        flowerCtx.lineTo(
+            next.x + 2,
+            next.y
+        );
+    }
+
+
+    flowerCtx.strokeStyle =
+        "rgba(100,120,135,0.22)";
+
+
+    flowerCtx.lineWidth =
+        1.4;
+
+
+    flowerCtx.stroke();
+
+
+    /*
+       أوراق صغيرة على الجذع
+    */
+
+    drawLeaf(
+        cx - 28,
+        cy + 185,
+        -0.65,
+        58,
+        24
+    );
+
+
+    drawLeaf(
+        cx + 12,
+        cy + 270,
+        0.48,
+        52,
+        21
+    );
+
+
+    flowerCtx.restore();
+}
+
+
+/* =========================================================
+   LEAF
+========================================================= */
+
+function drawLeaf(
+    x,
+    y,
+    angle,
+    length,
+    width
+) {
+
+    flowerCtx.save();
+
+
+    flowerCtx.translate(
+        x,
+        y
+    );
+
+
+    flowerCtx.rotate(
+        angle
+    );
+
+
+    flowerCtx.beginPath();
+
+
+    flowerCtx.moveTo(
+        0,
+        0
+    );
+
+
+    flowerCtx.quadraticCurveTo(
+        length * 0.45,
+        -width,
+        length,
+        0
+    );
+
+
+    flowerCtx.quadraticCurveTo(
+        length * 0.45,
+        width,
+        0,
+        0
+    );
+
+
+    const gradient =
+        flowerCtx.createLinearGradient(
+            0,
+            -width,
+            length,
+            width
+        );
+
+
+    gradient.addColorStop(
+        0,
+        "rgba(18,35,48,0.95)"
+    );
+
+
+    gradient.addColorStop(
+        0.5,
+        "rgba(28,55,65,0.8)"
+    );
+
+
+    gradient.addColorStop(
+        1,
+        "rgba(8,20,28,0.95)"
+    );
+
+
+    flowerCtx.fillStyle =
+        gradient;
+
+
+    flowerCtx.fill();
+
+
+    /*
+       عرق الورقة
+    */
+
+    flowerCtx.beginPath();
+
+
+    flowerCtx.moveTo(
+        0,
+        0
+    );
+
+
+    flowerCtx.lineTo(
+        length,
+        0
+    );
+
+
+    flowerCtx.strokeStyle =
+        "rgba(100,130,140,0.35)";
+
+
+    flowerCtx.lineWidth =
+        1.5;
+
+
+    flowerCtx.stroke();
+
+
+    /*
+       عروق جانبية
+    */
+
+    for (
+        let i = 0.2;
+        i < 0.9;
+        i += 0.16
+    ) {
+
+        const px =
+            length * i;
+
+
+        const h =
+            width *
+            Math.sin(
+                i * Math.PI
+            );
+
+
+        flowerCtx.beginPath();
+
+
+        flowerCtx.moveTo(
+            px,
+            0
+        );
+
+
+        flowerCtx.lineTo(
+            px - 8,
+            -h
+        );
+
+
+        flowerCtx.strokeStyle =
+            "rgba(90,120,130,0.18)";
+
+
+        flowerCtx.lineWidth =
+            1;
+
+
+        flowerCtx.stroke();
+
+
+        flowerCtx.beginPath();
+
+
+        flowerCtx.moveTo(
+            px,
+            0
+        );
+
+
+        flowerCtx.lineTo(
+            px - 8,
+            h
+        );
+
+
+        flowerCtx.stroke();
+    }
+
+
+    flowerCtx.restore();
+}
+
+
+/* =========================================================
+   CREATE TARGETS FOR TEXT
+========================================================= */
+
+function createTextTargets() {
+
+    const offscreen =
+        document.createElement(
+            "canvas"
+        );
+
+
+    const targetCtx =
+        offscreen.getContext(
+            "2d"
+        );
+
+
+    /*
+       حجم النص
+       أصغر قليلاً على الهاتف
+    */
+
+    const fontSize =
+        Math.min(
+            48,
+            W * 0.105
+        );
+
+
+    offscreen.width =
+        W;
+
+
+    offscreen.height =
+        H;
+
+
+    targetCtx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    targetCtx.font =
+        `bold ${fontSize}px
+        'Brush Script MT',
+        'Great Vibes',
+        cursive`;
+
+
+    targetCtx.textAlign =
+        "center";
+
+
+    targetCtx.textBaseline =
+        "middle";
+
+
+    /*
+       موقع الجملة
+       تحت الوردة
+    */
+
+    const textY =
+        cy + 270;
+
+
+    targetCtx.fillStyle =
+        "white";
+
+
+    targetCtx.fillText(
+        "I love u samo",
+        cx,
+        textY
+    );
+
+
+    const image =
+        targetCtx.getImageData(
+            0,
+            0,
+            W,
+            H
+        );
+
+
+    const targets = [];
+
+
+    /*
+       المسافة بين القطرات
+    */
+
+    const spacing =
+        Math.max(
+            5,
+            Math.floor(
+                W / 90
+            )
+        );
+
+
+    for (
+        let y = 0;
+        y < H;
+        y += spacing
+    ) {
+
+        for (
+            let x = 0;
+            x < W;
+            x += spacing
+        ) {
+
+            const index =
+                (
+                    y * W +
+                    x
+                ) * 4;
+
+
+            if (
+                image.data[index + 3]
+                >
+                100
+            ) {
+
+                targets.push({
+                    x,
+                    y
+                });
+            }
+        }
+    }
+
+
+    /*
+       خلط بسيط للترتيب
+       حتى تصل القطرات بشكل طبيعي
+    */
+
+    for (
+        let i = targets.length - 1;
+        i > 0;
+        i--
+    ) {
+
+        const j =
+            Math.floor(
+                Math.random() *
+                (i + 1)
+            );
+
+
+        [
+            targets[i],
+            targets[j]
+        ] =
+        [
+            targets[j],
+            targets[i]
+        ];
+    }
+
+
+    return targets;
+}
+
+
+/* =========================================================
+   START BLEEDING
+========================================================= */
 
 function startBleeding() {
 
@@ -1041,100 +1429,8 @@ function startBleeding() {
         true;
 
 
-    bloodDrops = [];
-
-
-    petalEndPoints.forEach(
-        (end, petalIndex) => {
-
-            /*
-               7 قطرات صغيرة من كل بتلة
-            */
-
-            for (
-                let i = 0;
-                i < 7;
-                i++
-            ) {
-
-                bloodDrops.push({
-
-                    startX:
-                        end.startX,
-
-                    startY:
-                        end.startY,
-
-
-                    x:
-                        end.startX,
-
-                    y:
-                        end.startY,
-
-
-                    progress:
-                        -i * 0.11
-                        -
-                        petalIndex * 0.025,
-
-
-                    speed:
-                        0.0025 +
-                        Math.random() *
-                        0.0012,
-
-
-                    length:
-                        45 +
-                        Math.random() *
-                        100,
-
-
-                    size:
-                        1.6 +
-                        Math.random() *
-                        1.7,
-
-
-                    drift:
-                        (
-                            Math.random()
-                            -
-                            0.5
-                        ) * 20,
-
-
-                    petal:
-                        petalIndex,
-
-                    finished:
-                        false
-                });
-            }
-        }
-    );
-
-
-    requestAnimationFrame(
-        animateBlood
-    );
-}
-
-
-/* =========================================================
-   BLOOD ANIMATION
-========================================================= */
-
-function animateBlood(time) {
-
-    if (!isBleeding) {
-        return;
-    }
-
-
     /*
-       نمسح طبقة الدم فقط.
+       تنظيف طبقة الدم فقط.
     */
 
     bloodCtx.clearRect(
@@ -1145,24 +1441,151 @@ function animateBlood(time) {
     );
 
 
-    let allFinished =
+    const targets =
+        createTextTargets();
+
+
+    drops = [];
+
+
+    /*
+       نحتاج عدداً كبيراً من القطرات
+       لتكوين العبارة.
+    */
+
+    const amount =
+        Math.min(
+            targets.length,
+            650
+        );
+
+
+    /*
+       نقاط الانطلاق من أطراف البتلات.
+    */
+
+    for (
+        let i = 0;
+        i < amount;
+        i++
+    ) {
+
+        const source =
+            petalEndPoints[
+                i %
+                petalEndPoints.length
+            ];
+
+
+        const target =
+            targets[i];
+
+
+        drops.push({
+
+            startX:
+                source.startX +
+                (
+                    Math.random() -
+                    0.5
+                ) * 10,
+
+            startY:
+                source.startY +
+                (
+                    Math.random() -
+                    0.5
+                ) * 10,
+
+
+            x:
+                source.startX,
+
+            y:
+                source.startY,
+
+
+            targetX:
+                target.x,
+
+            targetY:
+                target.y,
+
+
+            progress:
+                -i * 0.012,
+
+
+            speed:
+                0.0035 +
+                Math.random() *
+                0.0025,
+
+
+            size:
+                1.2 +
+                Math.random() *
+                1.6,
+
+
+            arrived:
+                false
+        });
+    }
+
+
+    requestAnimationFrame(
+        animateBlood
+    );
+}
+
+
+/* =========================================================
+   BLOOD DROPS ANIMATION
+========================================================= */
+
+function animateBlood() {
+
+    if (!isBleeding) {
+        return;
+    }
+
+
+    /*
+       نمسح الدم فقط.
+
+       الوردة والجذع لن يتأثرا.
+    */
+
+    bloodCtx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    let allArrived =
         true;
 
 
     for (
-        const drop of bloodDrops
+        const drop of drops
     ) {
+
+        /*
+           تأخير خروج القطرات
+        */
 
         drop.progress +=
             drop.speed;
 
 
         if (
-            drop.progress <
-            0
+            drop.progress < 0
         ) {
 
-            allFinished =
+            allArrived =
                 false;
 
             continue;
@@ -1170,14 +1593,17 @@ function animateBlood(time) {
 
 
         if (
-            drop.progress <
-            1
+            drop.progress < 1
         ) {
 
-            allFinished =
+            allArrived =
                 false;
         }
 
+
+        /*
+           حركة ناعمة
+        */
 
         const p =
             Math.min(
@@ -1186,99 +1612,49 @@ function animateBlood(time) {
             );
 
 
-        /*
-           تسارع خفيف
-        */
-
         const eased =
-            p * p *
-            (3 - 2 * p);
+            1 -
+            Math.pow(
+                1 - p,
+                3
+            );
 
-
-        const distance =
-            eased *
-            drop.length;
-
-
-        /*
-           حركة صغيرة يمين ويسار
-        */
 
         drop.x =
-            drop.startX
-            +
-            Math.sin(
-                p *
-                Math.PI *
-                2
-                +
-                drop.petal
+            drop.startX +
+            (
+                drop.targetX -
+                drop.startX
             ) *
-            4
-            +
-            drop.drift *
-            p;
+            eased;
 
 
         drop.y =
             drop.startY +
-            distance;
+            (
+                drop.targetY -
+                drop.startY
+            ) *
+            eased;
 
 
         /*
-           القطرة الصغيرة
+           القطرة
         */
 
         bloodCtx.save();
 
 
         bloodCtx.shadowBlur =
-            8;
+            12;
 
 
         bloodCtx.shadowColor =
-            "rgba(180,15,25,0.65)";
-
-
-        const redGradient =
-            bloodCtx.createRadialGradient(
-
-                drop.x -
-                drop.size * 0.3,
-
-                drop.y -
-                drop.size * 0.3,
-
-                0.5,
-
-                drop.x,
-
-                drop.y,
-
-                drop.size * 2
-            );
-
-
-        redGradient.addColorStop(
-            0,
-            "rgba(255,100,105,0.95)"
-        );
-
-
-        redGradient.addColorStop(
-            0.35,
-            "rgba(205,25,35,0.95)"
-        );
-
-
-        redGradient.addColorStop(
-            1,
-            "rgba(90,5,15,0.85)"
-        );
+            "rgba(40,120,255,0.8)";
 
 
         bloodCtx.fillStyle =
-            redGradient;
+            "rgba(45,145,255,0.9)";
 
 
         bloodCtx.beginPath();
@@ -1300,8 +1676,13 @@ function animateBlood(time) {
     }
 
 
+    /*
+       عندما تصل كل القطرات
+       تصبح العبارة ثابتة.
+    */
+
     if (
-        allFinished
+        allArrived
     ) {
 
         isBleeding =
@@ -1309,15 +1690,10 @@ function animateBlood(time) {
 
 
         /*
-           بعد انتهاء النزيف،
-           تبدأ القطرات بالتجمع
-           وتكوين الجملة.
+           إضافة لمعان بسيط للقطرات
         */
 
-        setTimeout(
-            gatherBloodIntoText,
-            500
-        );
+        animateFinalGlow();
 
 
         return;
@@ -1331,418 +1707,60 @@ function animateBlood(time) {
 
 
 /* =========================================================
-   CREATE TEXT PARTICLE TARGETS
+   FINAL GLOW
 ========================================================= */
 
-function createTextTargets() {
+function animateFinalGlow() {
 
-    /*
-       Canvas مؤقت فقط لمعرفة
-       أماكن حروف الجملة.
-    */
-
-    const temp =
-        document.createElement(
-            "canvas"
-        );
+    let phase = 0;
 
 
-    temp.width =
-        Math.floor(W * dpr);
-
-
-    temp.height =
-        Math.floor(H * dpr);
-
-
-    const tctx =
-        temp.getContext("2d");
-
-
-    tctx.setTransform(
-        dpr,
-        0,
-        0,
-        dpr,
-        0,
-        0
-    );
-
-
-    const fontSize =
-        Math.min(
-            48,
-            W * 0.095
-        );
-
-
-    tctx.font =
-        "bold " +
-        fontSize +
-        "px 'Brush Script MT', 'Great Vibes', 'Comic Sans MS', cursive";
-
-
-    tctx.textAlign =
-        "center";
-
-
-    tctx.textBaseline =
-        "middle";
-
-
-    const text =
-        "I love u samo";
-
-
-    const textY =
-        cy + 160;
-
-
-    /*
-       رسم النص باللون الأبيض
-       على canvas مؤقت.
-    */
-
-    tctx.fillStyle =
-        "#ffffff";
-
-
-    tctx.fillText(
-        text,
-        cx,
-        textY
-    );
-
-
-    const image =
-        tctx.getImageData(
-            0,
-            0,
-            temp.width,
-            temp.height
-        );
-
-
-    const targets = [];
-
-
-    /*
-       نأخذ نقاطًا من النص
-    */
-
-    const spacing =
-        Math.max(
-            3,
-            Math.floor(
-                dpr * 3
-            )
-        );
-
-
-    for (
-        let y = 0;
-        y < temp.height;
-        y += spacing
-    ) {
-
-        for (
-            let x = 0;
-            x < temp.width;
-            x += spacing
-        ) {
-
-            const index =
-                (
-                    y *
-                    temp.width +
-                    x
-                ) * 4;
-
-
-            const alpha =
-                image.data[
-                    index + 3
-                ];
-
-
-            if (
-                alpha > 100
-            ) {
-
-                targets.push({
-
-                    x:
-                        x / dpr,
-
-                    y:
-                        y / dpr
-                });
-            }
-        }
-    }
-
-
-    return targets;
-}
-
-
-/* =========================================================
-   GATHER BLOOD INTO TEXT
-========================================================= */
-
-function gatherBloodIntoText() {
-
-    /*
-       عدد كبير من النقاط
-       يعطي جملة واضحة.
-    */
-
-    let targets =
-        createTextTargets();
-
-
-    /*
-       إذا كان عدد القطرات قليلًا،
-       نكرر بعض الأهداف.
-    */
-
-    const particleCount =
-        Math.max(
-            targets.length,
-            250
-        );
-
-
-    const particles = [];
-
-
-    for (
-        let i = 0;
-        i < particleCount;
-        i++
-    ) {
-
-        const target =
-            targets[
-                i %
-                targets.length
-            ];
-
+    function glow() {
 
         /*
-           نقطة البداية:
-           تأتي من مكان إحدى قطرات الدم
-           أو من أطراف الزهرة.
+           لا نمسح الجملة.
+           نضيف فقط لمعاناً خفيفاً.
         */
 
-        const source =
-            petalEndPoints[
-                i %
-                petalEndPoints.length
-            ];
+        phase += 0.04;
 
 
-        particles.push({
-
-            x:
-                source.startX,
-
-            y:
-                source.startY,
+        bloodCtx.save();
 
 
-            targetX:
-                target.x,
-
-            targetY:
-                target.y,
+        bloodCtx.globalCompositeOperation =
+            "lighter";
 
 
-            delay:
-                Math.random() *
-                1800,
+        bloodCtx.globalAlpha =
+            0.08 +
+            Math.sin(phase) *
+            0.04;
 
 
-            duration:
-                1600 +
-                Math.random() *
-                1300,
+        bloodCtx.filter =
+            "blur(3px)";
 
 
-            size:
-                1.1 +
-                Math.random() *
-                1.4,
+        bloodCtx.drawImage(
+            bloodCanvas,
+            0,
+            0,
+            W,
+            H
+        );
 
 
-            startTime:
-                performance.now(),
+        bloodCtx.restore();
 
-            arrived:
-                false
-        });
+
+        requestAnimationFrame(
+            glow
+        );
     }
 
 
-    requestAnimationFrame(
-        function animateGather(now) {
-
-            bloodCtx.clearRect(
-                0,
-                0,
-                W,
-                H
-            );
-
-
-            let finished =
-                true;
-
-
-            particles.forEach(
-                particle => {
-
-                    const elapsed =
-                        now -
-                        particle.startTime;
-
-
-                    if (
-                        elapsed <
-                        particle.delay
-                    ) {
-
-                        finished =
-                            false;
-
-                        return;
-                    }
-
-
-                    const local =
-                        Math.min(
-                            (
-                                elapsed -
-                                particle.delay
-                            ) /
-                            particle.duration,
-                            1
-                        );
-
-
-                    if (
-                        local <
-                        1
-                    ) {
-
-                        finished =
-                            false;
-                    }
-
-
-                    /*
-                       حركة ناعمة
-                    */
-
-                    const eased =
-                        local *
-                        local *
-                        (
-                            3 -
-                            2 *
-                            local
-                        );
-
-
-                    /*
-                       مسار منحني قليلًا
-                    */
-
-                    const curve =
-                        Math.sin(
-                            eased *
-                            Math.PI
-                        ) *
-                        30;
-
-
-                    const x =
-                        particle.x +
-                        (
-                            particle.targetX -
-                            particle.x
-                        ) *
-                        eased;
-
-
-                    const y =
-                        particle.y +
-                        (
-                            particle.targetY -
-                            particle.y
-                        ) *
-                        eased
-                        -
-                        curve;
-
-
-                    /*
-                       النقطة الحمراء
-                    */
-
-                    bloodCtx.save();
-
-
-                    bloodCtx.shadowBlur =
-                        9;
-
-
-                    bloodCtx.shadowColor =
-                        "rgba(200,20,30,0.8)";
-
-
-                    bloodCtx.fillStyle =
-                        "rgba(210,25,35,0.95)";
-
-
-                    bloodCtx.beginPath();
-
-
-                    bloodCtx.arc(
-                        x,
-                        y,
-                        particle.size,
-                        0,
-                        Math.PI * 2
-                    );
-
-
-                    bloodCtx.fill();
-
-
-                    bloodCtx.restore();
-                }
-            );
-
-
-            if (
-                finished
-            ) {
-
-                /*
-                   بعد تجمع كل القطرات
-                   نتركها ثابتة كجملة.
-                */
-
-                return;
-            }
-
-
-            requestAnimationFrame(
-                animateGather
-            );
-        }
-    );
+    glow();
 }
 
 
@@ -1754,7 +1772,7 @@ resizeCanvas();
 
 
 flowerCtx.fillStyle =
-    "#05020a";
+"#05020a";
 
 
 flowerCtx.fillRect(
