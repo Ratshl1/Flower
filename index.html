@@ -68,6 +68,19 @@ canvas {
 
 <body>
 
+
+<!-- =====================================================
+     ROMANTIC MUSIC
+===================================================== -->
+
+<audio id="romanticMusic"
+       src="Romantic.mp4"
+       loop
+       preload="auto"
+       playsinline>
+</audio>
+
+
 <div id="scene">
 
     <canvas id="flowerCanvas"></canvas>
@@ -77,6 +90,88 @@ canvas {
 
 
 <script>
+
+/* =========================================================
+   ROMANTIC MUSIC
+========================================================= */
+
+const romanticMusic =
+    document.getElementById("romanticMusic");
+
+
+/*
+   Very quiet romantic volume.
+   0.20 = 20%
+*/
+
+romanticMusic.volume = 0.20;
+
+
+/*
+   Try to start immediately
+   when the website opens.
+*/
+
+function startMusic() {
+
+    romanticMusic.play()
+        .catch(() => {
+
+            /*
+               Some mobile browsers block
+               autoplay until the user interacts.
+            */
+
+        });
+}
+
+
+/*
+   First attempt.
+*/
+
+startMusic();
+
+
+/*
+   If autoplay is blocked,
+   start music on the first touch.
+*/
+
+function enableMusicAfterInteraction() {
+
+    romanticMusic.play()
+        .catch(() => {});
+
+}
+
+
+/*
+   Touch on mobile.
+*/
+
+document.addEventListener(
+    "touchstart",
+    enableMusicAfterInteraction,
+    {
+        once: true,
+        passive: true
+    }
+);
+
+
+/*
+   Click on desktop.
+*/
+
+document.addEventListener(
+    "click",
+    enableMusicAfterInteraction,
+    {
+        once: true
+    }
+);
+
 
 /* =========================================================
    CANVAS
