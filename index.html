@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الزنبقة الزرقاء الغامضة - نسخة متصلة ومثالية</title>
+    <title>الزنبقة الزرقاء - حلقات عريضة وباهتة</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #04020a; /* خلفية بنفسجية-سوداء عميقة */
+            background-color: #04020a;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -37,49 +37,44 @@
         let drawQueue = [];
         let currentIndex = 0;
 
-        // حساب الحجم الآمن للزهرة لتجنب الخروج عن الشاشة والتشوه
+        // الحجم الآمن للزهرة
         const MAX_RADIUS = Math.min(canvas.width, canvas.height) * 0.35; 
 
         // -----------------------------------------
-        // 1. توليد الساق المتصلة (Stem)
+        // 1. توليد الساق المتصلة
         // -----------------------------------------
         function generateStemPoints() {
             const points = [];
             const steps = 120;
-            // نقطة البداية (أسفل الساق، خارج المركز قليلاً)
             const startY = cy + 350; 
             const startX = cx + 20; 
-            
             for (let i = 0; i <= steps; i++) {
                 let t = i / steps;
-                // الساق ينحني بلطف ويتجه للأعلى
                 let x = startX - (t * 22); 
-                let y = startY - (t * (350 - 130)); // ينتهي عند cy + 130 بالضبط
+                let y = startY - (t * (350 - 130)); 
                 points.push({x, y});
             }
             return points;
         }
 
         const stemPoints = generateStemPoints();
-        // إضافة نقاط الساق من الأسفل للأعلى
         for (let i = 0; i < stemPoints.length; i++) {
             drawQueue.push({ type: 'stem', idx: i });
         }
 
         // -----------------------------------------
-        // 2. قاعدة الزهرة (القمع / Receptacle) - للربط بين الساق والبتلات
+        // 2. قاعدة الزهرة (القمع)
         // -----------------------------------------
         function generateReceptacle() {
             const loops = [];
             for (let i = 0; i < 80; i++) {
                 let t = i / 80;
-                // قاعدة تبدأ من cy + 130 وتصعد قليلاً إلى cy + 90
                 let yOffset = 130 - (t * 40); 
                 let xOffset = -15 + (t * 30);
-                // حلقات بيضاوية تتجمع لتشكل الوعاء
                 let w = 15 + t * 25;
                 let h = 10 + t * 15;
-                let color = `rgba(25, 30, 55, ${0.5 - t * 0.2})`;
+                // **بت أغمق وأكثر بهتاناً**
+                let color = `rgba(20, 25, 45, ${0.4 - t * 0.15})`;
                 loops.push({ type: 'base', x: cx + xOffset, y: cy + yOffset, w, h, angle: 0, color });
             }
             return loops;
@@ -87,7 +82,7 @@
         drawQueue = drawQueue.concat(generateReceptacle());
 
         // -----------------------------------------
-        // 3. بتلات الزنبقة (Lily Petals) - باستخدام دالة جيب لإنشاء أطراف مدببة
+        // 3. بتلات الزنبقة (الحلقات المتتالية العريضة)
         // -----------------------------------------
         const lilyPetals = [];
         const numPetals = 6;
@@ -97,49 +92,41 @@
             let petalAngle = (p / numPetals) * 2 * Math.PI;
             for (let j = 0; j < ringsPerPetal; j++) {
                 let t = j / ringsPerPetal;
-                
-                // توقف الزهرة بالضبط عند MAX_RADIUS ولا تتجاوزه أبداً
                 let distance = 5 + (t * MAX_RADIUS);
                 if (distance > MAX_RADIUS) break; 
-                
                 let angleOffset = Math.sin(j * 0.02) * 0.3; 
                 let angle = petalAngle + angleOffset;
                 
-                // *** معادلة الشكل المدبب (الجمالية) ***
-                // تستخدم دالة الجيب لتعطي شكل بتلة حقيقية: رفيعة في البداية، عريضة في المنتصف، ومدببة في النهاية
                 let shapeFactor = Math.sin(t * Math.PI); 
+                let w = 10 + shapeFactor * 25; 
+                let h = 15 + shapeFactor * 30; 
                 
-                let w = 10 + shapeFactor * 25; // العرض
-                let h = 15 + shapeFactor * 30; // الطول
-                
-                // تدرج الألوان الزرقاء الباهتة
-                let alpha = 0.35 - (t * 0.25);
-                alpha = Math.max(0.03, alpha);
-                let r = 30 + t * 80;
-                let g = 40 + t * 100;
-                let b = 120 + t * 110;
+                // **ألوان باهتة جداً (الشفافية Alpha منخفضة)**
+                let alpha = 0.25 - (t * 0.20); 
+                alpha = Math.max(0.02, alpha);
+                let r = 30 + t * 50;
+                let g = 30 + t * 60;
+                let b = 100 + t * 80;
                 
                 let color = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-                
                 lilyPetals.push({ distance, angle, w, h, color });
             }
         }
-        // ترتيب البتلات من الداخل إلى الخارج
         lilyPetals.sort((a, b) => a.distance - b.distance);
         drawQueue = drawQueue.concat(lilyPetals);
 
         // -----------------------------------------
-        // 4. الأسدية (Stamens) - عناصر داخلية جمالية
+        // 4. الأسدية الباهتة
         // -----------------------------------------
         const stamens = [];
         for (let s = 0; s < 6; s++) {
             let stamenAngle = (s / 6) * 2 * Math.PI + 0.2;
             for (let j = 0; j < 35; j++) {
                 let dist = 10 + j * 2.2;
-                if (dist > MAX_RADIUS * 0.65) break; // الأسدية أقصر من البتلات
+                if (dist > MAX_RADIUS * 0.65) break;
                 let color = j < 30 ? 
-                    `rgba(110, 90, 130, ${0.3 - (j/35)*0.2})` : 
-                    `rgba(200, 180, 210, 0.4)`; // رأس السداة باهت
+                    `rgba(90, 80, 110, ${0.25 - (j/35)*0.15})` : 
+                    `rgba(180, 160, 190, 0.3)`;
                 stamens.push({ distance: dist, angle: stamenAngle, w: 2, h: j < 30 ? 4 : 12, color });
             }
         }
@@ -147,13 +134,13 @@
         drawQueue = drawQueue.concat(stamens);
 
         // -----------------------------------------
-        // 5. إعدادات الرسم البطيء جداً
+        // 5. إعدادات الرسم (العريضة والباهتة)
         // -----------------------------------------
-        ctx.lineWidth = 3.5;
-        ctx.shadowBlur = 18; 
-        ctx.shadowColor = 'rgba(50, 30, 80, 0.25)'; // ظل بنفسجي غامض لطابع قديم
+        // **تم زيادة العرض وجعل الظل خفيفاً جداً ليزداد البهتان**
+        ctx.shadowBlur = 15; 
+        ctx.shadowColor = 'rgba(50, 40, 80, 0.15)'; 
 
-        const DRAW_DELAY_MS = 55; // بطيء جداً لملاحظة التشكل
+        const DRAW_DELAY_MS = 55;
 
         function drawItemFromQueue() {
             if (currentIndex >= drawQueue.length) return;
@@ -161,18 +148,16 @@
             const item = drawQueue[currentIndex];
 
             if (item.type === 'stem') {
-                // رسم الساق كخطوط متصلة تنمو للأعلى
                 ctx.beginPath();
                 ctx.moveTo(stemPoints[Math.max(0, item.idx - 1)].x, stemPoints[Math.max(0, item.idx - 1)].y);
                 ctx.lineTo(stemPoints[item.idx].x, stemPoints[item.idx].y);
                 ctx.strokeStyle = 'rgba(35, 45, 60, 0.7)';
                 ctx.lineWidth = 6.5;
-                ctx.shadowBlur = 0; // الساق لا يحتاج توهج كثيف
+                ctx.shadowBlur = 0;
                 ctx.stroke();
-                ctx.shadowBlur = 18;
+                ctx.shadowBlur = 15;
             } 
             else if (item.type === 'base') {
-                // رسم القمع (حلقات مملوءة)
                 ctx.save();
                 ctx.translate(item.x, item.y);
                 ctx.beginPath();
@@ -182,7 +167,7 @@
                 ctx.restore();
             } 
             else {
-                // رسم البتلات والأسدية (حلقات مجوفة باهتة)
+                // رسم البتلات والأسدية بحلقات **عريضة وباهتة**
                 const ring = item;
                 const x = cx + ring.distance * Math.cos(ring.angle);
                 const y = cy + ring.distance * Math.sin(ring.angle);
@@ -194,7 +179,9 @@
                 ctx.beginPath();
                 ctx.ellipse(0, 0, ring.w, ring.h, 0, 0, Math.PI * 2);
                 ctx.strokeStyle = ring.color;
-                ctx.lineWidth = ring.distance < 30 ? 5 : 3.5; // سمك أعرض في المركز
+                
+                // **زيادة عرض الخطوط لتصل إلى 6 و 7**
+                ctx.lineWidth = ring.distance < 30 ? 7 : 5; 
                 ctx.stroke();
                 
                 ctx.restore();
@@ -207,7 +194,7 @@
         // رسم الخلفية وبدء الأنيميشن
         ctx.fillStyle = '#04020a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        setTimeout(drawItemFromQueue, 600); // تأخير ثانية قبل البدء
+        setTimeout(drawItemFromQueue, 600);
 
     </script>
 </body>
