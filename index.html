@@ -2,22 +2,24 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الزنبقة الزرقاء - نزيف ورسالة</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>الزنبقة الزرقاء - رسالة الدم النيون</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #05020e;
+            background-color: #06020f;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            width: 100vw;
+            touch-action: none;
         }
         canvas {
             display: block;
-            background-color: #05020e;
+            background-color: #06020f;
         }
     </style>
 </head>
@@ -28,6 +30,7 @@
         const canvas = document.getElementById('flowerCanvas');
         const ctx = canvas.getContext('2d');
 
+        // ضبط دقة الشاشة للجوال
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         
@@ -36,17 +39,17 @@
 
         let drawQueue = [];
         let currentIndex = 0;
-        let petalEndPoints = [];
+        let petalEndPoints = []; // لتخزين أطراف البتلات
 
         let isDrawingFlower = true;
         let isBleeding = false;
         let bleedStep = 0;
 
         const MAX_RADIUS = Math.min(canvas.width, canvas.height) * 0.35; 
-        const CENTER_GAP = 130; 
+        const CENTER_GAP = 130; // فجوة مركز الزهرة
 
         // -----------------------------------------
-        // 1. توليد الساق
+        // 1. توليد الساق المتصلة بالزهرة
         // -----------------------------------------
         function generateStemPoints() {
             const points = [];
@@ -68,7 +71,7 @@
         }
 
         // -----------------------------------------
-        // 2. قاعدة الزهرة
+        // 2. قاعدة الزهرة (القمع / الربط)
         // -----------------------------------------
         function generateReceptacle() {
             const loops = [];
@@ -112,6 +115,7 @@
                 let g = 30 + t * 60;
                 let b = 100 + t * 80;
                 
+                // تحويل الألوان إلى الأسود عند الأطراف (كما في الصورة)
                 let fadeToBlack = Math.pow(t, 2.5);
                 r = r * (1 - fadeToBlack) + 5 * fadeToBlack;
                 g = g * (1 - fadeToBlack) + 5 * fadeToBlack;
@@ -120,7 +124,7 @@
                 let color = `rgba(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)}, ${alpha})`;
                 lilyPetals.push({ distance, angle, w, h, color });
 
-                // تخزين نقاط نهاية البتلات
+                // تسجيل أطراف البتلات لنزول الدم منها
                 if (j === ringsPerPetal - 1) {
                     let endX = cx + distance * Math.cos(angle);
                     let endY = cy + distance * Math.sin(angle);
@@ -150,7 +154,7 @@
         drawQueue = drawQueue.concat(stamens);
 
         // -----------------------------------------
-        // 5. إعدادات رسم البتلات
+        // 5. إعدادات الرسم البطيء للزهرة
         // -----------------------------------------
         ctx.lineWidth = 5.5;
         ctx.shadowBlur = 15; 
@@ -158,11 +162,11 @@
 
         const DRAW_DELAY_MS = 55;
 
-        ctx.fillStyle = '#05020e';
+        ctx.fillStyle = '#06020f';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // ============================================
-        // مرحلة النزيف (قطرات تسيل بوضوح)
+        // مرحلة النزيف الحقيقية (تسيل من الأطراف إلى الأسفل)
         // ============================================
         function startBleeding() {
             isDrawingFlower = false;
@@ -171,54 +175,61 @@
         }
 
         function startBleedDrops() {
-            if (bleedStep > 50) {
+            // عدد خطوات النزول (كلما زاد، كلما كان النزول أبطأ وأكثر انسيابية)
+            if (bleedStep > 100) {
                 isBleeding = false;
-                setTimeout(showLoveText, 500);
+                setTimeout(showLoveText, 400);
                 return;
             }
             
-            let t = bleedStep / 50;
+            let t = bleedStep / 100;
             
             // رسم قطرة دم من كل طرف بتلة
             for (let p = 0; p < petalEndPoints.length; p++) {
                 let end = petalEndPoints[p];
                 
-                // حركة القطرة لأسفل
-                let progressX = end.x - (end.x - cx) * t * 0.5; // تتجه للمركز قليلاً
-                let progressY = end.y + 10 + (t * 180); // تنزل للأسفل
+                // **حساب مسار القطرة بدقة: تبدأ من طرف البتلة، وتنزلق تدريجياً إلى الأسفل**
+                let startX = end.x;
+                let startY = end.y + 10;
+                let endX = startX - (startX - cx) * 0.5; // تتجه قليلاً للمركز أثناء النزول
+                let endY = cy + 165; // تتوقف أسفل الزهرة (فوق الجذع)
+                
+                let progressX = startX + (endX - startX) * t;
+                let progressY = startY + (endY - startY) * t;
                 
                 ctx.save();
-                // **قمنا بتكبير القطرة وجعل توهجها واضحاً جداً**
-                ctx.shadowBlur = 30;
+                // **تأثير نيون أزرق براق جداً للقطرات**
+                ctx.shadowBlur = 40;
                 ctx.shadowColor = 'rgba(60, 140, 255, 0.8)';
                 
                 ctx.beginPath();
-                // شكل القطرة (دائرة أو بيضاوية مائلة)
-                ctx.ellipse(progressX, progressY, 8 + t * 5, 11 + t * 7, end.angle, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(40, 140, 255, ${Math.max(0.3, 0.9 - t * 0.5)})`;
+                // حجم القطرة يتغير أثناء النزول (تكبر قليلاً)
+                let size = 6 + t * 6;
+                ctx.ellipse(progressX, progressY, size, size + 4, end.angle, 0, Math.PI * 2);
+                // درجة الشفافية: تبدأ قوية جداً وتخفت قليلاً عند الوصول للأسفل لتبدو سلسة
+                ctx.fillStyle = `rgba(40, 120, 255, ${Math.max(0.3, 0.95 - t * 0.4)})`;
                 ctx.fill();
                 ctx.restore();
             }
             
             bleedStep++;
-            setTimeout(startBleedDrops, 100);
+            setTimeout(startBleedDrops, 75); // 75 مللي ثانية بين كل قطرة = حركة بطيئة وواضحة
         }
 
         // ============================================
-        // مرحلة الجملة (واضحة، والقطرات ترسمها)
+        // مرحلة الجملة (أزرق نيون، وقطرات تكتب الحروف)
         // ============================================
         function showLoveText() {
             let text = "I love u samo";
             
-            // **إزالة التوهج عن النص ليصبح واضحاً**
-            ctx.shadowBlur = 0; 
-            
-            // استخدام خط عريض وواضح
-            ctx.font = "bold 48px 'Georgia', 'Brush Script MT', 'Great Vibes', serif";
+            // **العودة للألوان النيون، وإزالة الأخطاء التي تسبب التداخل**
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = '#4d94ff';
+            ctx.font = "bold 50px 'Brush Script MT', 'Great Vibes', cursive, sans-serif";
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            let yPos = cy + 160; // فوق الجذع مباشرة
+            let yPos = cy + 165; // فوق الجذع، تحت الزهرة مباشرة
             let step = 0;
             
             let textInterval = setInterval(() => {
@@ -229,45 +240,38 @@
                 
                 let partialText = text.substring(0, step);
                 
-                // **جعل النص بلون أزرق داكن/رمادي مع حدود بيضاء ليبرز**
-                ctx.fillStyle = '#a0b8d9'; 
-                ctx.strokeStyle = '#2a3a5a';
-                ctx.lineWidth = 3;
-                
-                // رسم النص مع الحدود ليصبح مقروءاً جداً
-                ctx.strokeText(partialText, cx, yPos);
+                // **حل مشكلة التداخل: نستخدم فقط FillText، وبدون StrokeText**
+                ctx.fillStyle = '#6699ff'; // لون أزرق نيون مركزي
                 ctx.fillText(partialText, cx, yPos);
                 
-                // **جعل القطرات اللامعة هي التي تُحيط بالحروف (الدم يرسم الحروف)**
-                for (let d = 0; d < 6; d++) {
-                    let dropX = cx + (Math.random() - 0.5) * (step * 25);
-                    let dropY = yPos + (Math.random() - 0.5) * 25;
+                // **تطاير قطرات النيون الصغيرة بجانب كل حرف (تمثل الدم النازف يكتب الكلمات)**
+                for (let d = 0; d < 5; d++) {
+                    let dropX = cx + (Math.random() - 0.5) * (step * 22);
+                    let dropY = yPos + (Math.random() - 0.5) * 24;
                     
                     ctx.save();
-                    // القطرات هي وحدها التي تتوهج
-                    ctx.shadowBlur = 30;
+                    ctx.shadowBlur = 20;
                     ctx.shadowColor = '#4d94ff';
-                    
                     ctx.beginPath();
-                    ctx.arc(dropX, dropY, 3 + Math.random() * 4, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(40, 120, 255, ${0.7 + Math.random() * 0.3})`;
+                    ctx.arc(dropX, dropY, 2 + Math.random() * 4, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(40, 160, 255, ${0.6 + Math.random() * 0.4})`;
                     ctx.fill();
                     ctx.restore();
                 }
                 
                 step++;
-            }, 170);
+            }, 160); // كتابة حرف كل 160 مللي ثانية
         }
 
         // ============================================
-        // حلقة الرسم الرئيسية
+        // حلقة الرسم الرئيسية (حلقات الزهرة)
         // ============================================
         function drawItemFromQueue() {
             if (!isDrawingFlower) return;
 
             if (currentIndex >= drawQueue.length) {
                 isDrawingFlower = false;
-                setTimeout(startBleeding, 300);
+                setTimeout(startBleeding, 500); // انتظر قليلاً بعد تفتح الزهرة ثم ابدأ النزيف
                 return;
             }
 
@@ -314,7 +318,12 @@
             setTimeout(drawItemFromQueue, DRAW_DELAY_MS);
         }
 
+        // بدء الرسم
         setTimeout(drawItemFromQueue, 600);
+
+        window.addEventListener('resize', () => {
+            // لتجنب أي أخطاء عند تدوير الشاشة، ننصح بتحديث الصفحة
+        });
 
     </script>
 </body>
