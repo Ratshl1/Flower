@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الزنبقة الزرقاء الغامضة</title>
+    <title>الزنبقة الزرقاء الغامضة - نسخة متصلة ومثالية</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #020105; /* خلفية سوداء مائلة للزرقة العميقة */
+            background-color: #04020a; /* خلفية بنفسجية-سوداء عميقة */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -17,7 +17,7 @@
         }
         canvas {
             display: block;
-            background-color: #020105;
+            background-color: #04020a;
         }
     </style>
 </head>
@@ -28,7 +28,6 @@
         const canvas = document.getElementById('flowerCanvas');
         const ctx = canvas.getContext('2d');
 
-        // ضبط حجم اللوحة
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         
@@ -38,67 +37,57 @@
         let drawQueue = [];
         let currentIndex = 0;
 
+        // حساب الحجم الآمن للزهرة لتجنب الخروج عن الشاشة والتشوه
+        const MAX_RADIUS = Math.min(canvas.width, canvas.height) * 0.35; 
+
         // -----------------------------------------
-        // 1. الساق الطويلة (Stem)
+        // 1. توليد الساق المتصلة (Stem)
         // -----------------------------------------
         function generateStemPoints() {
             const points = [];
-            const steps = 100;
+            const steps = 120;
+            // نقطة البداية (أسفل الساق، خارج المركز قليلاً)
+            const startY = cy + 350; 
+            const startX = cx + 20; 
+            
             for (let i = 0; i <= steps; i++) {
                 let t = i / steps;
-                let x = cx + 2 - (t * 15); // انحناء بسيط للساق
-                let y = cy + 130 + (t * 200) + (Math.sin(t * 2) * 10);
+                // الساق ينحني بلطف ويتجه للأعلى
+                let x = startX - (t * 22); 
+                let y = startY - (t * (350 - 130)); // ينتهي عند cy + 130 بالضبط
                 points.push({x, y});
             }
             return points;
         }
 
         const stemPoints = generateStemPoints();
+        // إضافة نقاط الساق من الأسفل للأعلى
         for (let i = 0; i < stemPoints.length; i++) {
             drawQueue.push({ type: 'stem', idx: i });
         }
 
         // -----------------------------------------
-        // 2. أوراق الساق الرفيعة (Leaves)
+        // 2. قاعدة الزهرة (القمع / Receptacle) - للربط بين الساق والبتلات
         // -----------------------------------------
-        function generateLeaves() {
-            const leaves = [];
-            // ورقة 1 (يسار)
-            for(let i=0; i<40; i++) {
-                let t = i / 40;
-                leaves.push({ type: 'leaf', x: cx - 15 - (t*30), y: cy + 180 + (t*80), w: 4 + t*8, h: 2 + t*14, angle: -0.2, color: `rgba(30, 50, 70, ${0.3 - t*0.2})` });
-            }
-            // ورقة 2 (يمين)
-            for(let i=0; i<35; i++) {
-                let t = i / 35;
-                leaves.push({ type: 'leaf', x: cx + 10 + (t*20), y: cy + 230 + (t*70), w: 4 + t*7, h: 2 + t*12, angle: 0.4, color: `rgba(20, 40, 60, ${0.25 - t*0.15})` });
-            }
-            return leaves;
-        }
-        drawQueue = drawQueue.concat(generateLeaves());
-
-        // -----------------------------------------
-        // 3. الحلقات الداخلية للزنبقة (كبسولة القمع)
-        // -----------------------------------------
-        function generateLilyBase() {
+        function generateReceptacle() {
             const loops = [];
-            for (let i = 0; i < 60; i++) {
-                let t = i / 60;
-                let dist = 5 + t * 40;
-                let angle = Math.random() * 2 * Math.PI;
-                let w = 10 + t * 20;
-                let h = 10 + t * 20;
-                loops.push({ 
-                    distance: dist, angle: angle, w: w, h: h, 
-                    color: `rgba(15, 20, 40, ${0.4 - t * 0.2})` 
-                });
+            for (let i = 0; i < 80; i++) {
+                let t = i / 80;
+                // قاعدة تبدأ من cy + 130 وتصعد قليلاً إلى cy + 90
+                let yOffset = 130 - (t * 40); 
+                let xOffset = -15 + (t * 30);
+                // حلقات بيضاوية تتجمع لتشكل الوعاء
+                let w = 15 + t * 25;
+                let h = 10 + t * 15;
+                let color = `rgba(25, 30, 55, ${0.5 - t * 0.2})`;
+                loops.push({ type: 'base', x: cx + xOffset, y: cy + yOffset, w, h, angle: 0, color });
             }
             return loops;
         }
-        drawQueue = drawQueue.concat(generateLilyBase());
+        drawQueue = drawQueue.concat(generateReceptacle());
 
         // -----------------------------------------
-        // 4. بتلات الزنبقة (Lily Petals) - 6 بتلات أنبوبية
+        // 3. بتلات الزنبقة (Lily Petals) - باستخدام دالة جيب لإنشاء أطراف مدببة
         // -----------------------------------------
         const lilyPetals = [];
         const numPetals = 6;
@@ -108,56 +97,63 @@
             let petalAngle = (p / numPetals) * 2 * Math.PI;
             for (let j = 0; j < ringsPerPetal; j++) {
                 let t = j / ringsPerPetal;
-                let distance = 10 + j * 3.8; // بتلة طويلة ممتدة
-                let angleOffset = Math.sin(j * 0.02) * 0.25; // انحناء البتلة للخارج
+                
+                // توقف الزهرة بالضبط عند MAX_RADIUS ولا تتجاوزه أبداً
+                let distance = 5 + (t * MAX_RADIUS);
+                if (distance > MAX_RADIUS) break; 
+                
+                let angleOffset = Math.sin(j * 0.02) * 0.3; 
                 let angle = petalAngle + angleOffset;
                 
-                // شكل البتلة الأنبوبي: عرض ثابت، طول متزايد
-                let w = 20 + t * 15; 
-                let h = 25 + t * 25; 
+                // *** معادلة الشكل المدبب (الجمالية) ***
+                // تستخدم دالة الجيب لتعطي شكل بتلة حقيقية: رفيعة في البداية، عريضة في المنتصف، ومدببة في النهاية
+                let shapeFactor = Math.sin(t * Math.PI); 
                 
-                // ألوان زرقاء باهتة جداً وغامضة
-                let alpha = 0.25 - (j / ringsPerPetal) * 0.20;
-                alpha = Math.max(0.02, alpha);
+                let w = 10 + shapeFactor * 25; // العرض
+                let h = 15 + shapeFactor * 30; // الطول
                 
-                // تدرج الألوان: قلب أزرق داكن، أطراف أزرق سماوي باهت
-                let r = 50 + t * 100;
-                let g = 60 + t * 140;
-                let b = 180 + t * 80;
+                // تدرج الألوان الزرقاء الباهتة
+                let alpha = 0.35 - (t * 0.25);
+                alpha = Math.max(0.03, alpha);
+                let r = 30 + t * 80;
+                let g = 40 + t * 100;
+                let b = 120 + t * 110;
                 
                 let color = `rgba(${r}, ${g}, ${b}, ${alpha})`;
                 
                 lilyPetals.push({ distance, angle, w, h, color });
             }
         }
+        // ترتيب البتلات من الداخل إلى الخارج
         lilyPetals.sort((a, b) => a.distance - b.distance);
         drawQueue = drawQueue.concat(lilyPetals);
 
         // -----------------------------------------
-        // 5. الأسدية (Stamens) - سمة الزنبق المميزة
+        // 4. الأسدية (Stamens) - عناصر داخلية جمالية
         // -----------------------------------------
         const stamens = [];
         for (let s = 0; s < 6; s++) {
-            let stamenAngle = (s / 6) * 2 * Math.PI;
-            for (let j = 0; j < 30; j++) {
-                let dist = 10 + j * 2.5;
-                let color = j < 28 ? 
-                    `rgba(130, 110, 70, ${0.3 - (j/30)*0.2})` : // خيوط السداة (لون نحاسي قديم)
-                    `rgba(200, 180, 100, 0.4)`; // متك السداة (طرفها)
-                stamens.push({ distance: dist, angle: stamenAngle, w: 2, h: j < 28 ? 4 : 10, color });
+            let stamenAngle = (s / 6) * 2 * Math.PI + 0.2;
+            for (let j = 0; j < 35; j++) {
+                let dist = 10 + j * 2.2;
+                if (dist > MAX_RADIUS * 0.65) break; // الأسدية أقصر من البتلات
+                let color = j < 30 ? 
+                    `rgba(110, 90, 130, ${0.3 - (j/35)*0.2})` : 
+                    `rgba(200, 180, 210, 0.4)`; // رأس السداة باهت
+                stamens.push({ distance: dist, angle: stamenAngle, w: 2, h: j < 30 ? 4 : 12, color });
             }
         }
         stamens.sort((a, b) => a.distance - b.distance);
         drawQueue = drawQueue.concat(stamens);
 
         // -----------------------------------------
-        // 6. إعدادات الرسم البطيء والطابع الغامض
+        // 5. إعدادات الرسم البطيء جداً
         // -----------------------------------------
-        ctx.lineWidth = 3.0;
-        ctx.shadowBlur = 15; // توهج غامض
-        ctx.shadowColor = 'rgba(30, 40, 80, 0.3)'; // ظل أزرق داكن
+        ctx.lineWidth = 3.5;
+        ctx.shadowBlur = 18; 
+        ctx.shadowColor = 'rgba(50, 30, 80, 0.25)'; // ظل بنفسجي غامض لطابع قديم
 
-        const DRAW_DELAY_MS = 45; // سرعة بطيئة جداً
+        const DRAW_DELAY_MS = 55; // بطيء جداً لملاحظة التشكل
 
         function drawItemFromQueue() {
             if (currentIndex >= drawQueue.length) return;
@@ -165,28 +161,28 @@
             const item = drawQueue[currentIndex];
 
             if (item.type === 'stem') {
+                // رسم الساق كخطوط متصلة تنمو للأعلى
                 ctx.beginPath();
                 ctx.moveTo(stemPoints[Math.max(0, item.idx - 1)].x, stemPoints[Math.max(0, item.idx - 1)].y);
                 ctx.lineTo(stemPoints[item.idx].x, stemPoints[item.idx].y);
-                ctx.strokeStyle = 'rgba(25, 40, 50, 0.6)';
-                ctx.lineWidth = 5;
-                ctx.shadowBlur = 0;
+                ctx.strokeStyle = 'rgba(35, 45, 60, 0.7)';
+                ctx.lineWidth = 6.5;
+                ctx.shadowBlur = 0; // الساق لا يحتاج توهج كثيف
                 ctx.stroke();
-                ctx.shadowBlur = 15;
+                ctx.shadowBlur = 18;
             } 
-            else if (item.type === 'leaf') {
+            else if (item.type === 'base') {
+                // رسم القمع (حلقات مملوءة)
                 ctx.save();
                 ctx.translate(item.x, item.y);
-                ctx.rotate(item.angle);
                 ctx.beginPath();
                 ctx.ellipse(0, 0, item.w, item.h, 0, 0, Math.PI * 2);
                 ctx.fillStyle = item.color;
-                ctx.lineWidth = 2;
                 ctx.fill();
                 ctx.restore();
             } 
             else {
-                // رسم حلقات الزنبقة والأسدية
+                // رسم البتلات والأسدية (حلقات مجوفة باهتة)
                 const ring = item;
                 const x = cx + ring.distance * Math.cos(ring.angle);
                 const y = cy + ring.distance * Math.sin(ring.angle);
@@ -198,7 +194,7 @@
                 ctx.beginPath();
                 ctx.ellipse(0, 0, ring.w, ring.h, 0, 0, Math.PI * 2);
                 ctx.strokeStyle = ring.color;
-                ctx.lineWidth = ring.distance < 15 ? 5 : 3; // ضربات سميكة في القمع الداخلي
+                ctx.lineWidth = ring.distance < 30 ? 5 : 3.5; // سمك أعرض في المركز
                 ctx.stroke();
                 
                 ctx.restore();
@@ -208,10 +204,10 @@
             setTimeout(drawItemFromQueue, DRAW_DELAY_MS);
         }
 
-        // رسم الخلفية وتشغيل الأنيميشن
-        ctx.fillStyle = '#020105';
+        // رسم الخلفية وبدء الأنيميشن
+        ctx.fillStyle = '#04020a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        setTimeout(drawItemFromQueue, 500);
+        setTimeout(drawItemFromQueue, 600); // تأخير ثانية قبل البدء
 
     </script>
 </body>
