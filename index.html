@@ -6,10 +6,10 @@
 <meta charset="UTF-8">
 
 <meta name="viewport"
-content="width=device-width,
-initial-scale=1.0,
-maximum-scale=1.0,
-user-scalable=no">
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
 
 <title>Blue Lily</title>
 
@@ -65,6 +65,7 @@ canvas {
 
 </head>
 
+
 <body>
 
 <div id="scene">
@@ -82,20 +83,20 @@ canvas {
 ========================================================= */
 
 const flowerCanvas =
-document.getElementById("flowerCanvas");
+    document.getElementById("flowerCanvas");
 
 const bloodCanvas =
-document.getElementById("bloodCanvas");
+    document.getElementById("bloodCanvas");
 
 const flowerCtx =
-flowerCanvas.getContext("2d");
+    flowerCanvas.getContext("2d");
 
 const bloodCtx =
-bloodCanvas.getContext("2d");
+    bloodCanvas.getContext("2d");
 
 
 /* =========================================================
-   GLOBAL VARIABLES
+   VARIABLES
 ========================================================= */
 
 let W;
@@ -114,11 +115,15 @@ let petalEndPoints = [];
 
 let stemPoints = [];
 
+let leaves = [];
+
 let isDrawingFlower = true;
 
 let isBleeding = false;
 
 let drops = [];
+
+let textTargets = [];
 
 
 /* =========================================================
@@ -137,20 +142,30 @@ function resizeCanvas() {
         );
 
 
-    [flowerCanvas, bloodCanvas].forEach(canvas => {
+    flowerCanvas.width =
+        Math.floor(W * dpr);
 
-        canvas.width =
-            Math.floor(W * dpr);
+    flowerCanvas.height =
+        Math.floor(H * dpr);
 
-        canvas.height =
-            Math.floor(H * dpr);
+    bloodCanvas.width =
+        Math.floor(W * dpr);
 
-        canvas.style.width =
-            W + "px";
+    bloodCanvas.height =
+        Math.floor(H * dpr);
 
-        canvas.style.height =
-            H + "px";
-    });
+
+    flowerCanvas.style.width =
+        W + "px";
+
+    flowerCanvas.style.height =
+        H + "px";
+
+    bloodCanvas.style.width =
+        W + "px";
+
+    bloodCanvas.style.height =
+        H + "px";
 
 
     flowerCtx.setTransform(
@@ -174,7 +189,11 @@ function resizeCanvas() {
 
     cx = W / 2;
 
-    cy = H * 0.43;
+    /*
+       موضع الزهرة
+    */
+
+    cy = H * 0.42;
 
 
     buildFlower();
@@ -192,6 +211,8 @@ function buildFlower() {
     currentIndex = 0;
 
     petalEndPoints = [];
+
+    leaves = [];
 
 
     const MAX_RADIUS =
@@ -213,20 +234,20 @@ function buildFlower() {
 
         const points = [];
 
-        const steps = 180;
+        const steps = 190;
 
 
         const startY =
             Math.min(
-                H - 15,
-                cy + 380
+                H - 12,
+                cy + 390
             );
 
 
         const endY =
             cy +
             CENTER_GAP -
-            5;
+            8;
 
 
         const startX =
@@ -247,10 +268,14 @@ function buildFlower() {
                 i / steps;
 
 
+            /*
+               انحناء بسيط طبيعي للجذع
+            */
+
             const curve =
                 Math.sin(
                     t * Math.PI
-                ) * 24;
+                ) * 22;
 
 
             const x =
@@ -280,6 +305,45 @@ function buildFlower() {
         generateStemPoints();
 
 
+    /*
+       أوراق متصلة بالجذع.
+       كل ورقة لها نقطة اتصال محددة.
+    */
+
+    leaves = [
+
+        {
+            stemIndex: 45,
+            side: -1,
+            length: 68,
+            width: 27,
+            angle: -0.48
+        },
+
+        {
+            stemIndex: 85,
+            side: 1,
+            length: 76,
+            width: 29,
+            angle: 0.46
+        },
+
+        {
+            stemIndex: 122,
+            side: -1,
+            length: 60,
+            width: 23,
+            angle: -0.62
+        }
+
+    ];
+
+
+    /*
+       الجذع يدخل في طابور الرسم،
+       لذلك سيظهر من البداية تدريجيًا.
+    */
+
     for (
         let i = 1;
         i < stemPoints.length;
@@ -294,7 +358,7 @@ function buildFlower() {
 
 
     /* =====================================================
-       FLOWER BASE
+       BASE
     ===================================================== */
 
     for (
@@ -375,7 +439,6 @@ function buildFlower() {
 
 
         let finalX = cx;
-
         let finalY = cy;
 
 
@@ -512,6 +575,10 @@ function buildFlower() {
         }
 
 
+        /*
+           نقطة خروج الدم
+        */
+
         petalEndPoints.push({
 
             startX:
@@ -528,8 +595,8 @@ function buildFlower() {
 
     lilyPetals.sort(
         (a, b) =>
-        a.distance -
-        b.distance
+            a.distance -
+            b.distance
     );
 
 
@@ -615,8 +682,8 @@ function buildFlower() {
 
     stamens.sort(
         (a, b) =>
-        a.distance -
-        b.distance
+            a.distance -
+            b.distance
     );
 
 
@@ -628,13 +695,412 @@ function buildFlower() {
 
 
 /* =========================================================
-   FLOWER DRAWING
-   يبدأ بطيئاً ثم يزيد تدريجياً
+   DRAW STEM
+========================================================= */
+
+function drawStemSegment(idx) {
+
+    const previous =
+        stemPoints[idx - 1];
+
+    const current =
+        stemPoints[idx];
+
+
+    flowerCtx.beginPath();
+
+
+    flowerCtx.moveTo(
+        previous.x,
+        previous.y
+    );
+
+
+    flowerCtx.lineTo(
+        current.x,
+        current.y
+    );
+
+
+    /*
+       الجذع الأساسي
+    */
+
+    flowerCtx.strokeStyle =
+        "rgba(35,65,45,0.98)";
+
+
+    flowerCtx.lineWidth =
+        9;
+
+
+    flowerCtx.lineCap =
+        "round";
+
+
+    flowerCtx.shadowBlur =
+        4;
+
+
+    flowerCtx.shadowColor =
+        "rgba(30,100,60,0.25)";
+
+
+    flowerCtx.stroke();
+
+
+    /*
+       خط داخلي يعطي الجذع تفاصيل
+    */
+
+    flowerCtx.beginPath();
+
+
+    flowerCtx.moveTo(
+        previous.x - 1.5,
+        previous.y
+    );
+
+
+    flowerCtx.lineTo(
+        current.x - 1.5,
+        current.y
+    );
+
+
+    flowerCtx.strokeStyle =
+        "rgba(105,145,95,0.38)";
+
+
+    flowerCtx.lineWidth =
+        2;
+
+
+    flowerCtx.stroke();
+
+
+    /*
+       تفاصيل صغيرة على الجذع
+    */
+
+    if (
+        idx % 10 === 0
+    ) {
+
+        flowerCtx.beginPath();
+
+
+        flowerCtx.arc(
+            current.x,
+            current.y,
+            1.5,
+            0,
+            Math.PI * 2
+        );
+
+
+        flowerCtx.fillStyle =
+            "rgba(120,155,105,0.32)";
+
+
+        flowerCtx.fill();
+    }
+
+
+    /*
+       ظهور الأوراق أثناء نمو الجذع
+    */
+
+    for (
+        const leaf of leaves
+    ) {
+
+        if (
+            idx === leaf.stemIndex
+        ) {
+
+            animateLeaf(
+                leaf
+            );
+        }
+    }
+}
+
+
+/* =========================================================
+   ANIMATED LEAF
+========================================================= */
+
+function animateLeaf(leaf) {
+
+    const connection =
+        stemPoints[
+            leaf.stemIndex
+        ];
+
+
+    const startX =
+        connection.x;
+
+
+    const startY =
+        connection.y;
+
+
+    let progress = 0;
+
+
+    function grow() {
+
+        progress += 0.035;
+
+
+        if (
+            progress > 1
+        ) {
+            progress = 1;
+        }
+
+
+        drawLeaf(
+            startX,
+            startY,
+            leaf.angle,
+            leaf.length *
+                progress,
+            leaf.width *
+                progress
+        );
+
+
+        if (
+            progress < 1
+        ) {
+
+            requestAnimationFrame(
+                grow
+            );
+        }
+    }
+
+
+    grow();
+}
+
+
+/* =========================================================
+   DRAW LEAF
+========================================================= */
+
+function drawLeaf(
+    x,
+    y,
+    angle,
+    length,
+    width
+) {
+
+    flowerCtx.save();
+
+
+    flowerCtx.translate(
+        x,
+        y
+    );
+
+
+    flowerCtx.rotate(
+        angle
+    );
+
+
+    /*
+       قاعدة الورقة متصلة
+       مباشرة بنقطة الجذع.
+    */
+
+    flowerCtx.beginPath();
+
+
+    flowerCtx.moveTo(
+        0,
+        0
+    );
+
+
+    flowerCtx.bezierCurveTo(
+        length * 0.25,
+        -width,
+        length * 0.75,
+        -width,
+        length,
+        0
+    );
+
+
+    flowerCtx.bezierCurveTo(
+        length * 0.75,
+        width,
+        length * 0.25,
+        width,
+        0,
+        0
+    );
+
+
+    const gradient =
+        flowerCtx.createLinearGradient(
+            0,
+            -width,
+            length,
+            width
+        );
+
+
+    gradient.addColorStop(
+        0,
+        "rgba(45,105,50,0.98)"
+    );
+
+
+    gradient.addColorStop(
+        0.45,
+        "rgba(50,135,55,0.90)"
+    );
+
+
+    gradient.addColorStop(
+        1,
+        "rgba(15,55,25,0.95)"
+    );
+
+
+    flowerCtx.fillStyle =
+        gradient;
+
+
+    flowerCtx.shadowBlur =
+        5;
+
+
+    flowerCtx.shadowColor =
+        "rgba(20,100,40,0.25)";
+
+
+    flowerCtx.fill();
+
+
+    /*
+       العرق الرئيسي
+    */
+
+    flowerCtx.beginPath();
+
+
+    flowerCtx.moveTo(
+        0,
+        0
+    );
+
+
+    flowerCtx.quadraticCurveTo(
+        length * 0.45,
+        -2,
+        length,
+        0
+    );
+
+
+    flowerCtx.strokeStyle =
+        "rgba(150,190,110,0.5)";
+
+
+    flowerCtx.lineWidth =
+        1.6;
+
+
+    flowerCtx.stroke();
+
+
+    /*
+       عروق الورقة
+    */
+
+    for (
+        let i = 0.18;
+        i < 0.9;
+        i += 0.14
+    ) {
+
+        const px =
+            length * i;
+
+
+        const h =
+            width *
+            Math.sin(
+                i * Math.PI
+            );
+
+
+        flowerCtx.beginPath();
+
+
+        flowerCtx.moveTo(
+            px,
+            0
+        );
+
+
+        flowerCtx.lineTo(
+            px - 10,
+            -h
+        );
+
+
+        flowerCtx.strokeStyle =
+            "rgba(140,180,105,0.25)";
+
+
+        flowerCtx.lineWidth =
+            1;
+
+
+        flowerCtx.stroke();
+
+
+        flowerCtx.beginPath();
+
+
+        flowerCtx.moveTo(
+            px,
+            0
+        );
+
+
+        flowerCtx.lineTo(
+            px - 10,
+            h
+        );
+
+
+        flowerCtx.stroke();
+    }
+
+
+    flowerCtx.restore();
+}
+
+
+/* =========================================================
+   DRAW ITEM
 ========================================================= */
 
 function drawItemFromQueue() {
 
-    if (!isDrawingFlower) {
+    if (
+        !isDrawingFlower
+    ) {
         return;
     }
 
@@ -648,12 +1114,17 @@ function drawItemFromQueue() {
             false;
 
 
-        drawStemDetails();
+        /*
+           اتصال نهائي للجذع
+           بمركز الزهرة
+        */
+
+        drawFlowerConnection();
 
 
         setTimeout(
             startBleeding,
-            800
+            900
         );
 
 
@@ -667,95 +1138,16 @@ function drawItemFromQueue() {
         ];
 
 
-    /* =====================================================
-       STEM
-    ===================================================== */
-
     if (
         item.type ===
         "stem"
     ) {
 
-        const previous =
-            stemPoints[
-                item.idx - 1
-            ];
-
-
-        const current =
-            stemPoints[
-                item.idx
-            ];
-
-
-        flowerCtx.beginPath();
-
-
-        flowerCtx.moveTo(
-            previous.x,
-            previous.y
+        drawStemSegment(
+            item.idx
         );
-
-
-        flowerCtx.lineTo(
-            current.x,
-            current.y
-        );
-
-
-        flowerCtx.strokeStyle =
-            "rgba(30,45,60,0.95)";
-
-
-        flowerCtx.lineWidth =
-            8;
-
-
-        flowerCtx.lineCap =
-            "round";
-
-
-        flowerCtx.shadowBlur =
-            4;
-
-
-        flowerCtx.shadowColor =
-            "rgba(20,80,120,0.3)";
-
-
-        flowerCtx.stroke();
-
-
-        flowerCtx.beginPath();
-
-
-        flowerCtx.moveTo(
-            previous.x - 1.5,
-            previous.y
-        );
-
-
-        flowerCtx.lineTo(
-            current.x - 1.5,
-            current.y
-        );
-
-
-        flowerCtx.strokeStyle =
-            "rgba(80,105,120,0.38)";
-
-
-        flowerCtx.lineWidth =
-            2;
-
-
-        flowerCtx.stroke();
     }
 
-
-    /* =====================================================
-       BASE
-    ===================================================== */
 
     else if (
         item.type ===
@@ -795,10 +1187,6 @@ function drawItemFromQueue() {
         flowerCtx.restore();
     }
 
-
-    /* =====================================================
-       PETALS / STAMENS
-    ===================================================== */
 
     else {
 
@@ -879,13 +1267,9 @@ function drawItemFromQueue() {
     currentIndex++;
 
 
-    /* =====================================================
-       سرعة الرسم
-       
-       البداية بطيئة جداً.
-       كل فترة قصيرة:
-       زيادة صغيرة فقط.
-    ===================================================== */
+    /*
+       تسارع تدريجي جداً
+    */
 
     const stage =
         Math.floor(
@@ -893,17 +1277,7 @@ function drawItemFromQueue() {
         );
 
 
-    /*
-       52ms
-       49ms
-       46ms
-       43ms
-       ...
-
-       الزيادة تدريجية وليست مفاجئة.
-    */
-
-    const drawDelay =
+    const delay =
         Math.max(
             25,
             52 -
@@ -913,16 +1287,16 @@ function drawItemFromQueue() {
 
     setTimeout(
         drawItemFromQueue,
-        drawDelay
+        delay
     );
 }
 
 
 /* =========================================================
-   STEM DETAILS
+   FLOWER / STEM CONNECTION
 ========================================================= */
 
-function drawStemDetails() {
+function drawFlowerConnection() {
 
     const top =
         stemPoints[
@@ -933,26 +1307,22 @@ function drawStemDetails() {
     flowerCtx.save();
 
 
-    /*
-       اتصال الجذع بالزهرة
-    */
-
     flowerCtx.beginPath();
 
 
     flowerCtx.moveTo(
         top.x,
-        top.y + 12
+        top.y
     );
 
 
     flowerCtx.bezierCurveTo(
 
-        top.x - 12,
-        top.y + 2,
+        top.x - 5,
+        top.y - 20,
 
-        cx - 28,
-        cy + 100,
+        cx - 18,
+        cy + 92,
 
         cx,
         cy + 72
@@ -960,7 +1330,7 @@ function drawStemDetails() {
 
 
     flowerCtx.strokeStyle =
-        "rgba(38,55,75,0.9)";
+        "rgba(38,75,45,0.95)";
 
 
     flowerCtx.lineWidth =
@@ -971,268 +1341,7 @@ function drawStemDetails() {
         "round";
 
 
-    flowerCtx.shadowBlur =
-        8;
-
-
-    flowerCtx.shadowColor =
-        "rgba(20,70,130,0.3)";
-
-
     flowerCtx.stroke();
-
-
-    /*
-       تفاصيل الجذع
-    */
-
-    flowerCtx.beginPath();
-
-
-    for (
-        let i = 20;
-        i <
-        stemPoints.length - 5;
-        i += 8
-    ) {
-
-        const p =
-            stemPoints[i];
-
-
-        const next =
-            stemPoints[i + 3];
-
-
-        flowerCtx.moveTo(
-            p.x + 2,
-            p.y
-        );
-
-
-        flowerCtx.lineTo(
-            next.x + 2,
-            next.y
-        );
-    }
-
-
-    flowerCtx.strokeStyle =
-        "rgba(100,120,135,0.22)";
-
-
-    flowerCtx.lineWidth =
-        1.4;
-
-
-    flowerCtx.stroke();
-
-
-    /*
-       أوراق
-    */
-
-    drawLeaf(
-        cx - 28,
-        cy + 185,
-        -0.65,
-        58,
-        24
-    );
-
-
-    drawLeaf(
-        cx + 12,
-        cy + 270,
-        0.48,
-        52,
-        21
-    );
-
-
-    flowerCtx.restore();
-}
-
-
-/* =========================================================
-   LEAF
-========================================================= */
-
-function drawLeaf(
-    x,
-    y,
-    angle,
-    length,
-    width
-) {
-
-    flowerCtx.save();
-
-
-    flowerCtx.translate(
-        x,
-        y
-    );
-
-
-    flowerCtx.rotate(
-        angle
-    );
-
-
-    flowerCtx.beginPath();
-
-
-    flowerCtx.moveTo(
-        0,
-        0
-    );
-
-
-    flowerCtx.quadraticCurveTo(
-        length * 0.45,
-        -width,
-        length,
-        0
-    );
-
-
-    flowerCtx.quadraticCurveTo(
-        length * 0.45,
-        width,
-        0,
-        0
-    );
-
-
-    const gradient =
-        flowerCtx.createLinearGradient(
-            0,
-            -width,
-            length,
-            width
-        );
-
-
-    gradient.addColorStop(
-        0,
-        "rgba(18,35,48,0.95)"
-    );
-
-
-    gradient.addColorStop(
-        0.5,
-        "rgba(28,55,65,0.8)"
-    );
-
-
-    gradient.addColorStop(
-        1,
-        "rgba(8,20,28,0.95)"
-    );
-
-
-    flowerCtx.fillStyle =
-        gradient;
-
-
-    flowerCtx.fill();
-
-
-    /*
-       العرق الرئيسي
-    */
-
-    flowerCtx.beginPath();
-
-
-    flowerCtx.moveTo(
-        0,
-        0
-    );
-
-
-    flowerCtx.lineTo(
-        length,
-        0
-    );
-
-
-    flowerCtx.strokeStyle =
-        "rgba(100,130,140,0.35)";
-
-
-    flowerCtx.lineWidth =
-        1.5;
-
-
-    flowerCtx.stroke();
-
-
-    /*
-       العروق الجانبية
-    */
-
-    for (
-        let i = 0.2;
-        i < 0.9;
-        i += 0.16
-    ) {
-
-        const px =
-            length * i;
-
-
-        const h =
-            width *
-            Math.sin(
-                i * Math.PI
-            );
-
-
-        flowerCtx.beginPath();
-
-
-        flowerCtx.moveTo(
-            px,
-            0
-        );
-
-
-        flowerCtx.lineTo(
-            px - 8,
-            -h
-        );
-
-
-        flowerCtx.strokeStyle =
-            "rgba(90,120,130,0.18)";
-
-
-        flowerCtx.lineWidth =
-            1;
-
-
-        flowerCtx.stroke();
-
-
-        flowerCtx.beginPath();
-
-
-        flowerCtx.moveTo(
-            px,
-            0
-        );
-
-
-        flowerCtx.lineTo(
-            px - 8,
-            h
-        );
-
-
-        flowerCtx.stroke();
-    }
 
 
     flowerCtx.restore();
@@ -1251,112 +1360,101 @@ function createTextTargets() {
         );
 
 
-    /*
-       نستخدم دقة أعلى من حجم الشاشة
-       حتى تكون الحروف واضحة.
-    */
-
-    const scale = 2;
+    const scale = 3;
 
 
     offscreen.width =
-        W * scale;
+        Math.floor(
+            W * scale
+        );
+
 
     offscreen.height =
-        H * scale;
+        Math.floor(
+            H * scale
+        );
 
 
-    const targetCtx =
+    const tctx =
         offscreen.getContext(
             "2d"
         );
 
 
-    targetCtx.scale(
+    tctx.scale(
         scale,
         scale
     );
 
 
     /*
-       حجم الخط
+       استخدام خط واضح جداً
+       حتى تكون الحروف مفهومة.
     */
 
     const fontSize =
         Math.min(
-            52,
-            W * 0.115
+            48,
+            W * 0.105
         );
 
 
-    targetCtx.font =
+    tctx.font =
         `bold ${fontSize}px
-        "Brush Script MT",
-        "Great Vibes",
-        cursive`;
+         "Trebuchet MS",
+         Arial,
+         sans-serif`;
 
 
-    targetCtx.textAlign =
+    tctx.textAlign =
         "center";
 
 
-    targetCtx.textBaseline =
+    tctx.textBaseline =
         "middle";
 
 
     /*
-       مكان الجملة
+       موقع الجملة
     */
 
     const textY =
         cy + 270;
 
 
-    targetCtx.fillStyle =
+    /*
+       نرسم النص باللون الأبيض
+       في طبقة غير مرئية للمستخدم.
+    */
+
+    tctx.fillStyle =
         "white";
 
 
-    /*
-       نرسم النص مرتين
-       للحصول على كتلة حروف واضحة.
-    */
-
-    targetCtx.fillText(
+    tctx.fillText(
         "I love u samo",
         cx,
         textY
     );
 
-
-    targetCtx.fillText(
-        "I love u samo",
-        cx,
-        textY
-    );
-
-
-    /*
-       قراءة البكسلات
-    */
 
     const image =
-        targetCtx.getImageData(
+        tctx.getImageData(
             0,
             0,
-            W * scale,
-            H * scale
+            offscreen.width,
+            offscreen.height
         );
 
 
-    const targets = [];
+    const result = [];
 
 
     /*
-       نقاط كثيفة جداً
-       حتى تكون الجملة مقروءة.
+       كثافة عالية جداً.
     */
 
-    const spacing = 4;
+    const spacing = 3;
 
 
     for (
@@ -1386,8 +1484,7 @@ function createTextTargets() {
             const index =
                 (
                     py *
-                    W *
-                    scale +
+                    offscreen.width +
                     px
                 ) * 4;
 
@@ -1395,11 +1492,13 @@ function createTextTargets() {
             if (
                 image.data[
                     index + 3
-                ] > 120
+                ] > 100
             ) {
 
-                targets.push({
+                result.push({
+
                     x,
+
                     y
                 });
             }
@@ -1408,37 +1507,10 @@ function createTextTargets() {
 
 
     /*
-       نرتب النقاط عشوائياً
-       لكي لا تتشكل الجملة من اليسار
-       إلى اليمين بشكل آلي جداً.
+       نحتفظ بعدد كبير من النقاط.
     */
 
-    for (
-        let i =
-        targets.length - 1;
-        i > 0;
-        i--
-    ) {
-
-        const j =
-            Math.floor(
-                Math.random() *
-                (i + 1)
-            );
-
-
-        [
-            targets[i],
-            targets[j]
-        ] =
-        [
-            targets[j],
-            targets[i]
-        ];
-    }
-
-
-    return targets;
+    return result;
 }
 
 
@@ -1460,7 +1532,7 @@ function startBleeding() {
     );
 
 
-    const targets =
+    textTargets =
         createTextTargets();
 
 
@@ -1468,16 +1540,22 @@ function startBleeding() {
 
 
     /*
-       نستخدم أكبر عدد ممكن من النقاط
-       ولكن مع الحفاظ على الأداء.
+       نريد كمية نقاط كافية جداً
+       لقراءة الجملة.
     */
 
     const amount =
         Math.min(
-            targets.length,
-            1000
+            textTargets.length,
+            2600
         );
 
+
+    /*
+       نوزع مصادر الدم
+       حول أطراف البتلات
+       لكن مع تكرارها.
+    */
 
     for (
         let i = 0;
@@ -1493,8 +1571,12 @@ function startBleeding() {
 
 
         const target =
-            targets[i];
+            textTargets[i];
 
+
+        /*
+           بداية كل قطرة من البتلة.
+        */
 
         drops.push({
 
@@ -1503,14 +1585,14 @@ function startBleeding() {
                 (
                     Math.random() -
                     0.5
-                ) * 8,
+                ) * 10,
 
             startY:
                 source.startY +
                 (
                     Math.random() -
                     0.5
-                ) * 8,
+                ) * 10,
 
 
             x:
@@ -1528,31 +1610,30 @@ function startBleeding() {
 
 
             /*
-               فرق زمني صغير بين القطرات
+               القطرات لا تبدأ كلها
+               في نفس الوقت.
             */
 
             progress:
-                -i * 0.008,
+                -(
+                    i * 0.002
+                ),
 
 
             /*
-               أبطأ بكثير من النسخة السابقة
+               نزول بطيء وجميل.
             */
 
             speed:
-                0.0018 +
+                0.0017 +
                 Math.random() *
-                0.0012,
+                0.0007,
 
-
-            /*
-               قطرات صغيرة
-            */
 
             size:
-                1.15 +
+                0.85 +
                 Math.random() *
-                1.35
+                1.15
         });
     }
 
@@ -1569,14 +1650,12 @@ function startBleeding() {
 
 function animateBlood() {
 
-    if (!isBleeding) {
+    if (
+        !isBleeding
+    ) {
         return;
     }
 
-
-    /*
-       نمسح طبقة الدم فقط.
-    */
 
     bloodCtx.clearRect(
         0,
@@ -1586,7 +1665,7 @@ function animateBlood() {
     );
 
 
-    let allArrived =
+    let finished =
         true;
 
 
@@ -1599,15 +1678,14 @@ function animateBlood() {
 
 
         /*
-           القطرات التي لم يحن
-           وقت خروجها بعد.
+           لم تبدأ القطرة بعد.
         */
 
         if (
             drop.progress < 0
         ) {
 
-            allArrived =
+            finished =
                 false;
 
             continue;
@@ -1618,14 +1696,10 @@ function animateBlood() {
             drop.progress < 1
         ) {
 
-            allArrived =
+            finished =
                 false;
         }
 
-
-        /*
-           حركة ناعمة جداً
-        */
 
         const p =
             Math.min(
@@ -1635,7 +1709,7 @@ function animateBlood() {
 
 
         /*
-           Ease In Out
+           حركة ناعمة.
         */
 
         const eased =
@@ -1673,22 +1747,22 @@ function animateBlood() {
 
 
         /*
-           القطرة
+           القطرة الصغيرة.
         */
 
         bloodCtx.save();
 
 
         bloodCtx.shadowBlur =
-            10;
+            8;
 
 
         bloodCtx.shadowColor =
-            "rgba(40,120,255,0.65)";
+            "rgba(35,125,255,0.65)";
 
 
         bloodCtx.fillStyle =
-            "rgba(55,150,255,0.92)";
+            "rgba(50,145,255,0.94)";
 
 
         bloodCtx.beginPath();
@@ -1711,20 +1785,24 @@ function animateBlood() {
 
 
     /*
-       بعد وصول جميع القطرات
-       نتركها ثابتة لتظهر الجملة.
+       عندما تصل جميع القطرات
+       نثبتها.
     */
 
     if (
-        allArrived
+        finished
     ) {
 
         isBleeding =
             false;
 
 
-        makeFinalTextClear();
+        /*
+           نعمل إضاءة خفيفة جداً
+           على نقاط الحروف فقط.
+        */
 
+        emphasizeFinalLetters();
 
         return;
     }
@@ -1737,45 +1815,90 @@ function animateBlood() {
 
 
 /* =========================================================
-   MAKE FINAL TEXT CLEAR
+   FINAL TEXT EMPHASIS
 ========================================================= */
 
-function makeFinalTextClear() {
+function emphasizeFinalLetters() {
 
     /*
-       نترك القطرات كما هي،
-       ثم نضيف طبقة ضوء خفيفة جداً
-       خلفها فقط.
-
-       لا يوجد fillRect
-       ولا خلفية للنص.
+       لا نرسم مستطيلاً ولا خلفية.
+       نضيء نفس القطرات الموجودة فقط.
     */
 
     let pulse = 0;
 
 
-    function glow() {
+    function animateGlow() {
 
-        pulse += 0.025;
+        pulse += 0.035;
 
 
         /*
-           لا نريد إعادة رسم القطرات
-           أو تغيير أماكنها.
+           إعادة رسم القطرات
+           بنفس أماكنها،
+           مع توهج بسيط.
         */
 
-        if (
-            pulse < Math.PI * 2
+        bloodCtx.clearRect(
+            0,
+            0,
+            W,
+            H
+        );
+
+
+        for (
+            const drop of drops
         ) {
 
-            requestAnimationFrame(
-                glow
+            const glow =
+                7 +
+                Math.sin(
+                    pulse
+                ) * 2;
+
+
+            bloodCtx.save();
+
+
+            bloodCtx.shadowBlur =
+                glow;
+
+
+            bloodCtx.shadowColor =
+                "rgba(35,130,255,0.9)";
+
+
+            bloodCtx.fillStyle =
+                "rgba(55,155,255,0.98)";
+
+
+            bloodCtx.beginPath();
+
+
+            bloodCtx.arc(
+                drop.targetX,
+                drop.targetY,
+                drop.size * 1.05,
+                0,
+                Math.PI * 2
             );
+
+
+            bloodCtx.fill();
+
+
+            bloodCtx.restore();
         }
+
+
+        requestAnimationFrame(
+            animateGlow
+        );
     }
 
 
-    glow();
+    animateGlow();
 }
 
 
@@ -1787,7 +1910,7 @@ resizeCanvas();
 
 
 flowerCtx.fillStyle =
-"#05020a";
+    "#05020a";
 
 
 flowerCtx.fillRect(
@@ -1801,6 +1924,25 @@ flowerCtx.fillRect(
 setTimeout(
     drawItemFromQueue,
     800
+);
+
+
+/*
+   لا نعيد بناء المشهد
+   أثناء resize حتى لا تختفي الزهرة.
+*/
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        /*
+           في حالة تغيير اتجاه الهاتف،
+           أعد تحميل الصفحة للحصول
+           على أفضل تناسب.
+        */
+
+    }
 );
 
 </script>
