@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Loop Flower</title>
+
+<style>
+    * { box-sizing: border-box; }
+
+    html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #10030f;
+    }
+
+    body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: default;
+    }
+
+    canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+        background: #10030f;
+    }
+
+    /* Gives the same thin white frame visible in the reference */
+    .frame {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        border: 7px solid rgba(255,255,255,.92);
+        border-top-width: 7px;
+        border-bottom-width: 7px;
+    }
+
+    .hint {
+        position: fixed;
+        left: 50%;
+        bottom: 13px;
+        transform: translateX(-50%);
+        color: rgba(255,255,255,.22);
+        font: 11px Arial, sans-serif;
+        letter-spacing: 2px;
+        opacity: 0;
+        transition: opacity .3s;
+        pointer-events: none;
+    }
+
+    body:hover .hint { opacity: 1; }
+</style>
+</head>
+
+<body>
+<canvas id="flower"></canvas>
+<div class="frame"></div>
+<div class="hint">CLICK TO DRAW AGAIN</div>
+
+<script>
+const canvas = document.getElementById("flower");
+const ctx = canvas.getContext("2d");
+
+let W, H, DPR;
+let animationId;
+let startedAt = 0;
+
+function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    drawBackground();
+}
+
+function drawBackground() {
+    ctx.fillStyle = "#10030f";
+    ctx.fillRect(0, 0, W, H);
+}
+
+/* deterministic pseudo-randomness: makes the flower irregular,
+   but keeps the same overall shape on every run */
+function noise(n) {
+    const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+    return x - Math.floor(x);
+}
+
+function flowerGeometry() {
+    const cx = W * 0.50;
+    const cy = H * 0.49;
+
+    // Scale according to screen size while preserving the proportions
+    const s = Math.min(W / 1284, H / 942);
+
+    return {
+        cx,
+        cy,
+        s,
+        stemX: cx + 4 * s,
+        stemBottomY: H * 0.985,
+        headBottom: cy + 205 * s,
+        headTop: cy - 185 * s
+    };
+}
+
+/*
+    A single "ring" is an imperfect ellipse.
+    Several close traces make it look hand-drawn and slightly noisy,
+    just like the reference image.
+*/
+function ringPoints(ring, trace) {
+    const g = flowerGeometry();
+    const s = g.s;
+
+    const rows = [
+        // y, width, height, tilt, x offset
+        [-168, 120, 48,  0.00,  0],
+        [-145, 190, 55,  0.01,  0],
+        [-112, 225, 60, -0.02, -5],
+        [ -75, 245, 62,  0.01,  0],
+        [ -38, 260, 66, -0.02,  2],
+        [   0, 270, 68,  0.01, -2],
+        [  38, 255, 66, -0.01,  1],
+        [  73, 238, 62,  0.02, -4],
+        [ 108, 215, 58, -0.02,  2],
+        [ 139, 180, 52,  0.01, -1],
+        [ 166, 125, 43, -0.01,  1]
+    ];
+
+    const r = rows[ring % rows.length];
+
+    const centerY = g.cy + r[0] * s;
+    const rx = r[1] * s;
+    const ry = r[2] * s;
+
+    const pts = [];
+    const N = 150;
+
+    for (let i = 0; i <= N; i++) {
+        const t = (i / N) * Math.PI * 2;
+
+        // Irregularity increases toward the outside of each loop
+        const wobble =
+            1 +
+            (noise(ring * 31 + trace * 7 + i * .71) - .5) * .105;
+
+        const wobble2 =
+            (noise(ring * 13 + trace * 19 + i * 1.31) - .5) * 5 * s;
+
+        let x = Math.cos(t) * rx * wobble;
+        let y = Math.sin(t) * ry * wobble;
+
+        // Tiny handmade offsets
+        x += Math.sin(t * 3 + ring) * 2.8 * s;
+        y += Math.sin(t * 5 + trace) * 2.0 * s;
+
+        // rotate the loop very slightly
+        const a = r[3];
+        const xx = x * Math.cos(a) - y * Math.sin(a);
+        const yy = x * Math.sin(a) + y * Math.cos(a);
+
+        pts.push({
+            x: g.cx + r[4] * s + xx,
+            y: centerY + yy + wobble2
+        });
+    }
+
+    return pts;
+}
+
+function drawPartial(points, amount, color, width, alpha) {
+    const max = Math.max(2, Math.floor(points.length * amount));
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+
+    for (let i = 1; i < max; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+    }
+
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+}
+
+/* Green stem and leaf are drawn after the flower head */
+function drawStem(amount) {
+    const g = flowerGeometry();
+    const s = g.s;
+
+    const p0 = { x: g.cx + 5*s, y: g.headBottom - 10*s };
+    const p1 = { x: g.cx + 18*s, y: g.cy + 125*s };
+    const p2 = { x: g.cx + 73*s, y: g.cy + 218*s };
+    const p3 = { x: g.cx + 205*s, y: g.stemBottomY };
+
+    const pts = [];
+    const N = 180;
+
+    for (let i = 0; i <= N; i++) {
+        const t = i/N;
+        const u = 1-t;
+
+        const x =
+            u*u*u*p0.x +
+            3*u*u*t*p1.x +
+            3*u*t*t*p2.x +
+            t*t*t*p3.x;
+
+        const y =
+            u*u*u*p0.y +
+            3*u*u*t*p1.y +
+            3*u*t*t*p2.y +
+            t*t*t*p3.y;
+
+        pts.push({x, y});
+    }
+
+    drawPartial(pts, amount, "#22a76a", 3.0*s, .92);
+
+    // Small imperfect second trace
+    drawPartial(pts, Math.max(0, amount - .02), "#0d714e", 1.0*s, .55);
+
+    if (amount > .48) {
+        const leafProgress = Math.min(1, (amount - .48) / .28);
+        drawLeaf(g.cx + 48*s, g.cy + 180*s, leafProgress, s);
+    }
+}
+
+function drawLeaf(x, y, amount, s) {
+    if (amount <= 0) return;
+
+    const pts = [];
+    const N = 80;
+
+    // Leaf curves toward the right, matching the reference
+    for (let i=0; i<=N; i++) {
+        const t = i/N;
+        const a = Math.PI * 2 * t;
+
+        const lx = Math.cos(a) * 52*s;
+        const ly = Math.sin(a) * 17*s;
+
+        pts.push({
+            x: x + lx + 22*s*t,
+            y: y + ly - 3*s*t
+        });
+    }
+
+    drawPartial(pts, amount, "#16885b", 2.4*s, .8);
+    drawPartial(pts, amount, "#0d6749", 1.0*s, .65);
+}
+
+function render(time) {
+    drawBackground();
+
+    const elapsed = time - startedAt;
+
+    // One loop is completed before the next one begins.
+    const ringDuration = 145;
+    const ringCount = 11;
+
+    let ringProgress = elapsed / ringDuration;
+    let completed = Math.floor(ringProgress);
+    let partial = ringProgress - completed;
+
+    if (completed >= ringCount) {
+        completed = ringCount;
+        partial = 1;
+    }
+
+    // Draw every completed ring.
+    for (let r=0; r<completed; r++) {
+        const pts = ringPoints(r, 0);
+
+        // Main bright pink line
+        drawPartial(pts, 1, "#e90068", 3.4 * flowerGeometry().s, .88);
+
+        // Offset traces create the rough/glitchy hand-drawn look
+        drawPartial(ringPoints(r,1), 1, "#ff176f", 1.5 * flowerGeometry().s, .43);
+        drawPartial(ringPoints(r,2), 1, "#b50060", 1.1 * flowerGeometry().s, .42);
+    }
+
+    // Current ring being continuously drawn
+    if (completed < ringCount) {
+        const pts = ringPoints(completed, 0);
+
+        drawPartial(pts, partial, "#ff086c",
+                    3.8 * flowerGeometry().s, .94);
+
+        drawPartial(ringPoints(completed,1), partial,
+                    "#ff2c80", 1.4 * flowerGeometry().s, .55);
+
+        // Occasional little secondary fragments
+        if (partial > .35) {
+            drawPartial(ringPoints(completed,2), Math.max(0, partial-.18),
+                        "#b70062", 1.1 * flowerGeometry().s, .42);
+        }
+    }
+
+    ctx.globalAlpha = 1;
+
+    // Stem starts appearing only after the flower head is almost complete.
+    const stemStart = ringCount * ringDuration - 250;
+    const stemAmount = Math.max(0, Math.min(1, (elapsed - stemStart) / 900));
+    drawStem(stemAmount);
+
+    // Subtle digital/noise specks over the flower
+    if (completed > 2) {
+        addNoise(completed, partial);
+    }
+
+    ctx.globalAlpha = 1;
+
+    // Restart automatically after a short pause
+    if (elapsed > ringCount * ringDuration + 1500) {
+        startedAt = time;
+    }
+
+    animationId = requestAnimationFrame(render);
+}
+
+function addNoise(seed, progress) {
+    const g = flowerGeometry();
+    const s = g.s;
+
+    ctx.fillStyle = "#ff1680";
+    ctx.globalAlpha = .10;
+
+    for (let i=0; i<75; i++) {
+        const x = g.cx + (noise(seed*97+i*2.3)-.5) * 500*s;
+        const y = g.cy + (noise(seed*31+i*4.7)-.5) * 400*s;
+
+        if (noise(i+seed*3) > .55) {
+            ctx.fillRect(x, y, Math.max(1, s), Math.max(1, s));
+        }
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+function restart() {
+    cancelAnimationFrame(animationId);
+    startedAt = performance.now();
+    requestAnimationFrame(render);
+}
+
+window.addEventListener("resize", () => {
+    resize();
+    restart();
+});
+
+canvas.addEventListener("click", restart);
+
+resize();
+restart();
+</script>
+</body>
+</html>
