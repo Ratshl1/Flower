@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>زهرة الحلقات الباهتة</title>
+    <title>زهرة الحلقات البطيئة والباهتة</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #0f0211; /* خلفية داكنة جدا */
+            background-color: #0b010e; /* خلفية داكنة جداً عميقة */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -17,7 +17,7 @@
         }
         canvas {
             display: block;
-            background-color: #0f0211;
+            background-color: #0b010e;
         }
     </style>
 </head>
@@ -28,128 +28,186 @@
         const canvas = document.getElementById('flowerCanvas');
         const ctx = canvas.getContext('2d');
 
-        // ضبط حجم اللوحة لملء الشاشة
+        // ضبط حجم اللوحة
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         
-        // نقطة مركز الرسم
+        // نقطة المركز
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
 
-        // *** توليد البيانات الحلقية (الحلقات المتماسكة) ***
-        const ringsData = [];
-        const numPetals = 6; // عدد البتلات (مثل الصورة)
-        const ringsPerPetal = 70; // كثافة الحلقات
+        // قائمة تحتوي على كل ما سيتم رسمه بالترتيب
+        let drawQueue = [];
+        let currentIndex = 0;
 
-        // توليد الحلقات التي تشكل بتلات الزهرة
+        // -----------------------------------------
+        // 1. توليد عناصر الرسم للساق (Stem)
+        // -----------------------------------------
+        function generateStemPoints() {
+            const points = [];
+            const steps = 80; // عدد النقاط
+            for (let i = 0; i <= steps; i++) {
+                let t = i / steps;
+                // معادلة منحنى بيزيير التربيعي للساق
+                let x = cx - 5 + (-20 * t * t) + (25 * t); 
+                let y = cy + 90 + (90 * t) + (120 * t * t);
+                points.push({x, y});
+            }
+            return points;
+        }
+
+        const stemPoints = generateStemPoints();
+        // إضافة نقاط الساق إلى قائمة الانتظار
+        for (let i = 0; i < stemPoints.length; i++) {
+            let segment = { type: 'stem', idx: i };
+            drawQueue.push(segment);
+        }
+
+        // -----------------------------------------
+        // 2. توليد عناصر الرسم للورقة (Leaf)
+        // -----------------------------------------
+        function generateLeafLoops() {
+            const loops = [];
+            const centerX = cx - 8;
+            const centerY = cy + 190;
+            
+            for (let i = 0; i < 35; i++) {
+                let t = i / 35;
+                // تكوين شكل الورقة من حلقات صغيرة متراكمة
+                let w = 5 + t * 18;
+                let h = 3 + t * 9;
+                let angle = 0.3; // ميلان الورقة
+                let offsetX = -t * 10; 
+                let offsetY = t * 8;
+                let color = `rgba(60, 140, 90, ${0.25 - t * 0.20})`;
+                loops.push({ type: 'leaf', x: centerX + offsetX, y: centerY + offsetY, w, h, angle, color });
+            }
+            return loops;
+        }
+
+        const leafLoops = generateLeafLoops();
+        drawQueue = drawQueue.concat(leafLoops);
+
+        // -----------------------------------------
+        // 3. توليد الحلقات المتماسكة للزهرة (Flower)
+        // -----------------------------------------
+        const ringsData = [];
+        const numPetals = 6; // عدد البتلات
+        const ringsPerPetal = 65; // كثافة الحلقات لكل بتلة
+
+        // توليد الحلقات الخارجية التي تشكل البتلات
         for (let p = 0; p < numPetals; p++) {
             let petalAngle = (p / numPetals) * 2 * Math.PI;
             for (let j = 0; j < ringsPerPetal; j++) {
-                let distance = 5 + j * 2.4; // المسافة من المركز
-                let angle = petalAngle + (j * 0.04); // انحراف بسيط لتعطي التواء جميل
+                let distance = 8 + j * 2.5; 
+                let angle = petalAngle + (j * 0.05); 
                 
-                // أبعاد الحلقة البيضاوية
-                let w = 12 + j * 0.1; // العرض
-                let h = 22 + j * 0.7; // الارتفاع (تأخذ شكل البتلة)
+                // **تم توسيع العرض والارتفاع ليصبحوا أكثر سماكة**
+                let w = 16 + j * 0.1; // عرض الحلقة البيضاوية
+                let h = 28 + j * 0.8; // ارتفاع الحلقة البيضاوية
                 
-                // التحكم باللون الباهت "فايدة الألوان" (Alpha)
-                // المركز شديد السطوع، والأطراف باهتة
-                let alpha = 0.35 - (j / ringsPerPetal) * 0.25;
-                let color = `rgba(255, ${80 + j * 2}, 180, ${alpha < 0 ? 0.05 : alpha})`;
+                // **زيادة درجة البهتان (خفض الألوان)**
+                // المركز قوي قليلاً، والأطراف شديدة البهتان
+                let alpha = 0.20 - (j / ringsPerPetal) * 0.18;
+                alpha = Math.max(0.02, alpha); // التأكد من عدم وصوله للصفر كلياً
+                let color = `rgba(255, ${80 + j * 2}, 180, ${alpha})`;
                 
                 ringsData.push({ distance, angle, w, h, color });
             }
         }
 
-        // إضافة حلقات المركز الكثيفة لجعل الزهرة نابضة بالحياة
-        for (let i = 0; i < 150; i++) {
-            let dist = Math.random() * 18;
+        // إضافة حلقات المركز الكثيفة جداً لجعل اللب نابضاً
+        for (let i = 0; i < 200; i++) {
+            let dist = Math.random() * 20;
             let angle = Math.random() * 2 * Math.PI;
-            let w = 8 + Math.random() * 12;
-            let h = 8 + Math.random() * 12;
+            let w = 10 + Math.random() * 14;
+            let h = 10 + Math.random() * 14;
+            let brightness = 180 + Math.floor(Math.random() * 75);
             ringsData.push({ 
                 distance: dist, 
                 angle: angle, 
                 w: w, 
                 h: h, 
-                color: `rgba(255, ${200 + Math.floor(Math.random()*55)}, 240, ${0.3 + Math.random() * 0.4})` 
+                color: `rgba(255, ${brightness}, 220, ${0.1 + Math.random() * 0.3})` 
             });
         }
 
-        // *** ترتيب الرسم من الداخل إلى الخارج بشكل منظم ***
+        // ترتيب الحلقات من الداخل إلى الخارج (من المركز إلى الأطراف)
         ringsData.sort((a, b) => a.distance - b.distance);
+        drawQueue = drawQueue.concat(ringsData);
 
-        // *** رسم الساق والورقة ***
-        function drawStemAndLeaf() {
-            // الساق
-            ctx.beginPath();
-            ctx.moveTo(cx - 5, cy + 90);
-            ctx.quadraticCurveTo(cx - 25, cy + 180, cx + 20, cy + 300);
-            ctx.strokeStyle = 'rgba(60, 140, 90, 0.8)';
-            ctx.lineWidth = 4;
-            ctx.stroke();
+        // -----------------------------------------
+        // 4. إعدادات الرسم العامة والأنيميشن البطيء
+        // -----------------------------------------
+        ctx.shadowBlur = 15; // إضافة توهج ناعم جداً للخطوط
+        ctx.shadowColor = 'rgba(255, 105, 180, 0.2)';
 
-            // الورقة
-            ctx.save();
-            ctx.translate(cx - 8, cy + 190);
-            ctx.rotate(0.3);
-            ctx.beginPath();
-            ctx.ellipse(0, 0, 20, 10, 0, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(60, 140, 90, 0.7)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(60, 140, 90, 0.7)';
-            ctx.stroke();
-            ctx.restore();
-        }
+        // سرعة الرسم (عدد صغير = بطيء جداً، عدد كبير = سريع)
+        const DRAW_DELAY_MS = 45; 
 
-        // رسم الخلفية والساق فوراً
-        ctx.fillStyle = '#0f0211';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        drawStemAndLeaf();
+        function drawItemFromQueue() {
+            if (currentIndex >= drawQueue.length) return; // انتهى الرسم
 
-        // *** إعدادات الجمالية (التمويه والبهتان) ***
-        ctx.lineWidth = 2.5;
-        ctx.shadowBlur = 8; // تأثير التوهج الناعم
-        ctx.shadowColor = 'rgba(255, 105, 180, 0.4)';
+            const item = drawQueue[currentIndex];
 
-        // *** نظام الرسوم المتحركة البطيء ***
-        let currentRingIndex = 0;
-
-        function drawNextRing() {
-            if (currentRingIndex < ringsData.length) {
-                const ring = ringsData[currentRingIndex];
-                
-                // حساب الإحداثيات القطبية
+            if (item.type === 'stem') {
+                // رسم الساق (خطوط صغيرة متصلة)
+                ctx.beginPath();
+                ctx.moveTo(stemPoints[Math.max(0, item.idx - 1)].x, stemPoints[Math.max(0, item.idx - 1)].y);
+                ctx.lineTo(stemPoints[item.idx].x, stemPoints[item.idx].y);
+                ctx.strokeStyle = 'rgba(60, 140, 90, 0.7)';
+                ctx.lineWidth = 6; // **ساق أعرض**
+                ctx.shadowBlur = 0; // إزالة التوهج عن الجذع للوضوح
+                ctx.stroke();
+                ctx.shadowBlur = 15; // إعادة التوهج للزهور
+            } 
+            else if (item.type === 'leaf') {
+                // رسم الورقة (حلقات متراكمة)
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                ctx.rotate(item.angle);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, item.w, item.h, 0, 0, Math.PI * 2);
+                ctx.fillStyle = item.color;
+                ctx.fill(); // تعبئة الورقة
+                ctx.restore();
+            } 
+            else {
+                // رسم حلقات الزهرة
+                const ring = item;
                 const x = cx + ring.distance * Math.cos(ring.angle);
                 const y = cy + ring.distance * Math.sin(ring.angle);
                 
-                // رسم الحلقة
                 ctx.save();
                 ctx.translate(x, y);
-                ctx.rotate(ring.angle + Math.PI / 2); // تدوير الحلقة
+                ctx.rotate(ring.angle + Math.PI / 2);
                 
                 ctx.beginPath();
                 ctx.ellipse(0, 0, ring.w, ring.h, 0, 0, Math.PI * 2);
                 ctx.strokeStyle = ring.color;
+                ctx.lineWidth = 4.5; // **خطوط ودوائر أعرض**
                 ctx.stroke();
                 
                 ctx.restore();
-
-                currentRingIndex++;
-                requestAnimationFrame(drawNextRing); // استمرار الرسم
             }
+
+            currentIndex++;
+            // تحديد الخطوة التالية بتأخير (لجعل الرسم بطيئاً جداً)
+            setTimeout(drawItemFromQueue, DRAW_DELAY_MS);
         }
 
-        // إرجاع الرسم المتأخر قليلاً (قسم بالثانية) ليكون بطيئاً أكثر
-        setTimeout(() => {
-            drawNextRing();
-        }, 100);
+        // رسم خلفية داكنة
+        ctx.fillStyle = '#0b010e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // إعادة ضبط الحجم عند تغيير حجم النافذة
+        // بدء الرسم المتسلسل
+        setTimeout(drawItemFromQueue, 300); // تأخير أولي ثانية قبل البدء
+
+        // (اختياري) عند تغيير حجم الشاشة لا داعي لإعادة الرسم، لكن سنضيف هذه للحفاظ على المركز
         window.addEventListener('resize', () => {
-            // ملاحظة: إعادة الضبط ستفرض عليك تحديث الصفحة للحصول على المركز الصحيح
-            // للحصول على تجربة مثالية، أبقي النافذة بحجمها الطبيعي.
+            // للحصول على أفضل تجربة، يُفضل تحديث الصفحة أو عدم تغيير الحجم أثناء الرسم.
         });
+
     </script>
 </body>
 </html>
