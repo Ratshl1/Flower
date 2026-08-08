@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>زهرة الأكواد — من دائرة إلى وردة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Tajawal:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0510;
+    --bg-1:#160a1c;
+    --bg-2:#1f0f27;
+    --line:#3a2440;
+    --ink:#f4ecf3;
+    --ink-dim:#b9a7bd;
+    --petal-1:#ffe6f2;
+    --petal-2:#ffb3d9;
+    --petal-3:#ff66b2;
+    --petal-4:#ff1493;
+    --petal-5:#c71585;
+    --stem:#2e8b57;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:var(--bg-0);
+    color:var(--ink);
+    font-family:'Tajawal',sans-serif;
+    overflow-x:hidden;
+  }
+
+  body{
+    background:
+      radial-gradient(120% 90% at 50% 8%, var(--bg-2) 0%, var(--bg-1) 45%, var(--bg-0) 100%);
+    min-height:100vh;
+  }
+
+  /* ---------- top label ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:22px clamp(18px,5vw,56px) 0;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.04em;
+    color:var(--ink-dim);
+    direction:ltr;
+  }
+  .topbar span.dot{
+    display:inline-block;
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--petal-4);
+    margin-inline-end:8px;
+    box-shadow:0 0 8px var(--petal-4);
+  }
+
+  /* ---------- hero ---------- */
+  .hero{
+    max-width:1100px;
+    margin:0 auto;
+    padding:18px 24px 40px;
+    text-align:center;
+  }
+
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    letter-spacing:.12em;
+    color:var(--petal-3);
+    text-transform:uppercase;
+    direction:ltr;
+    margin-bottom:18px;
+    opacity:.85;
+  }
+
+  h1{
+    font-family:'Aref Ruqaa',serif;
+    font-weight:700;
+    font-size:clamp(34px,6vw,64px);
+    line-height:1.25;
+    margin:0 0 14px;
+    background:linear-gradient(180deg,#fff 0%, var(--petal-2) 55%, var(--petal-4) 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+
+  .sub{
+    font-size:clamp(14px,2.1vw,17px);
+    color:var(--ink-dim);
+    max-width:560px;
+    margin:0 auto;
+    line-height:1.9;
+    font-weight:300;
+  }
+
+  .sub b{ color:var(--ink); font-weight:500; }
+
+  /* ---------- canvas stage ---------- */
+  .stage{
+    position:relative;
+    max-width:640px;
+    margin:28px auto 6px;
+  }
+
+  .stage-glow{
+    position:absolute;
+    inset:-10%;
+    background:radial-gradient(circle at 50% 38%, rgba(255,20,147,.14), transparent 60%);
+    filter:blur(10px);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  canvas{
+    position:relative;
+    z-index:1;
+    width:100%;
+    height:auto;
+    display:block;
+    touch-action:none;
+  }
+
+  #flowerCanvas.spin{
+    animation:driftSpin 46s linear infinite;
+    transform-origin:50% 46%;
+  }
+  @keyframes driftSpin{
+    0%{ transform:rotate(0deg); }
+    100%{ transform:rotate(360deg); }
+  }
+
+  /* ---------- controls ---------- */
+  .controls{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    margin-top:6px;
+    flex-wrap:wrap;
+  }
+
+  .btn{
+    appearance:none;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,0.03);
+    color:var(--ink);
+    font-family:'Tajawal',sans-serif;
+    font-size:14px;
+    font-weight:500;
+    padding:11px 22px;
+    border-radius:999px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition:border-color .25s ease, background .25s ease, transform .15s ease;
+  }
+  .btn:hover{
+    border-color:var(--petal-4);
+    background:rgba(255,20,147,0.08);
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn svg{ width:15px;height:15px; }
+
+  .btn.ghost{
+    border-color:transparent;
+    color:var(--ink-dim);
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+  }
+  .btn.ghost:hover{ color:var(--ink); background:transparent; border-color:var(--line); }
+
+  .status{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink-dim);
+    letter-spacing:.03em;
+    min-height:16px;
+    margin-top:14px;
+    direction:ltr;
+  }
+  .status .cursor{
+    display:inline-block;
+    width:6px;height:12px;
+    background:var(--petal-3);
+    margin-inline-start:3px;
+    vertical-align:-2px;
+    animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ---------- code strip ---------- */
+  .code-strip{
+    max-width:640px;
+    margin:44px auto 0;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:rgba(255,255,255,0.02);
+    overflow:hidden;
+    text-align:right;
+  }
+  .code-strip .head{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 16px;
+    border-bottom:1px solid var(--line);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--ink-dim);
+    direction:ltr;
+  }
+  .code-strip .head i{
+    width:8px;height:8px;border-radius:50%;
+    background:#5a4a5f;
+  }
+  .code-strip pre{
+    margin:0;
+    padding:16px 18px;
+    direction:ltr;
+    text-align:left;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    line-height:1.7;
+    color:#cbb9d0;
+    overflow-x:auto;
+  }
+  .code-strip .kw{ color:#ff66b2; }
+  .code-strip .num{ color:#ffb3d9; }
+  .code-strip .str{ color:#9be3c4; }
+  .code-strip .cm{ color:#6f5c74; }
+
+  footer{
+    text-align:center;
+    padding:40px 20px 60px;
+    color:var(--ink-dim);
+    font-size:12px;
+    font-family:'JetBrains Mono',monospace;
+    direction:ltr;
+    opacity:.6;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    #flowerCanvas.spin{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div><span class="dot"></span>heart.py</div>
+    <div>turtle · math · random</div>
+  </div>
+
+  <main class="hero">
+    <div class="eyebrow">generative art / python turtle</div>
+    <h1>حلقاتٌ تبدو عشوائية…<br>حتى تتفتّح وردة</h1>
+    <p class="sub">كل بكسل هنا وُلد من <b>معادلة</b>، لا من فرشاة.<br>راقب الخطوط وهي تلتف حلقةً بعد حلقة، بلا رفع قلم، حتى تكتمل الزهرة.</p>
+
+    <div class="stage">
+      <div class="stage-glow"></div>
+      <canvas id="flowerCanvas"></canvas>
+    </div>
+
+    <div class="status" id="status">جاهز للرسم<span class="cursor"></span></div>
+
+    <div class="controls">
+      <button class="btn" id="replayBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+        إعادة الرسم
+      </button>
+      <button class="btn ghost" id="skipBtn">skip animation</button>
+    </div>
+
+    <div class="code-strip">
+      <div class="head"><i></i>&nbsp;the loop that draws every petal</div>
+      <pre><span class="kw">for</span> ring <span class="kw">in</span> rings:
+    <span class="kw">for</span> i <span class="kw">in</span> range(ring[<span class="str">"count"</span>]):
+        angle = (<span class="num">360</span> / ring[<span class="str">"count"</span>]) * i + ring[<span class="str">"offset"</span>]
+        base_x = ring[<span class="str">"radius"</span>] * cos(radians(angle))
+        base_y = ring[<span class="str">"radius"</span>] * sin(radians(angle))
+        draw_petal(base=(base_x, base_y), base_angle=angle,
+                   length=ring[<span class="str">"length"</span>], width=ring[<span class="str">"width"</span>],
+                   color=ring[<span class="str">"color"</span>])  <span class="cm"># pen never lifts</span></pre>
+    </div>
+  </main>
+
+  <footer>rendered live in your browser · canvas 2d · no images used</footer>
+
+<script>
+(function(){
+
+  // ============================================================
+  // 1. GEOMETRY  — ported 1:1 from the original turtle logic
+  // ============================================================
+
+  const rings = [
+    {radius:0,  count:4,  length:40,  width:15, color:"#ffe6f2", offset:45},
+    {radius:10, count:5,  length:50,  width:25, color:"#ffb3d9", offset:0},
+    {radius:20, count:7,  length:70,  width:35, color:"#ff66b2", offset:30},
+    {radius:30, count:9,  length:90,  width:45, color:"#ff1493", offset:15},
+    {radius:40, count:12, length:110, width:55, color:"#c71585", offset:0},
+  ];
+
+  function petalPoints(base, baseAngleRad, length, width, points){
+    points = points || 26;
+    const [bx,by] = base;
+    const cosA = Math.cos(baseAngleRad), sinA = Math.sin(baseAngleRad);
+    const pts = [];
+    for(let i=0;i<=points;i++){
+      const theta = i*Math.PI/points;
+      const out = length*Math.sin(theta);
+      const side = width*Math.sin(theta)*Math.cos(theta);
+      const rx = out*cosA - side*sinA;
+      const ry = out*sinA + side*cosA;
+      pts.push([bx+rx, by+ry]);
+    }
+    return pts;
+  }
+
+  // mimic python turtle's circle(radius, extent): center is `radius`
+  // units to the LEFT of heading; positive radius -> counter-clockwise.
+  function turtleCircle(pos, headingDeg, radius, extentDeg, steps){
+    steps = steps || 44;
+    const [x,y] = pos;
+    const h = headingDeg;
+    const toRad = Math.PI/180;
+    const ccx = x + radius*Math.cos((h+90)*toRad);
+    const ccy = y + radius*Math.sin((h+90)*toRad);
+    const pts = [];
+    for(let s=0;s<=steps;s++){
+      const sdeg = extentDeg*s/steps;
+      const ang = (h-90+sdeg)*toRad;
+      pts.push([ccx+radius*Math.cos(ang), ccy+radius*Math.sin(ang)]);
+    }
+    return { pts, end: pts[pts.length-1], heading: h+extentDeg };
+  }
+
+  // Build the full continuous stroke list, in drawing order.
+  function buildSegments(){
+    const segs = [];
+    let current = [0,0];
+
+    rings.forEach(ring=>{
+      for(let i=0;i<ring.count;i++){
+        const angleDeg = (360/ring.count)*i + ring.offset;
+        const rad = angleDeg*Math.PI/180;
+        const bx = ring.radius*Math.cos(rad);
+        const by = ring.radius*Math.sin(rad);
+        const loop = petalPoints([bx,by], rad, ring.length, ring.width, 26);
+        segs.push({ pts:[current, ...loop], color:ring.color, width:1.6, glow:9 });
+        current = loop[loop.length-1];
+      }
+    });
+
+    // pen up -> jump to stem start (no visible line)
+    current = [0,-30];
+    let heading = 260;
+
+    let arc = turtleCircle(current, heading, 250, 25);
+    segs.push({ pts: arc.pts, color: "#2e8b57", width:4.2, glow:6 });
+    let pos1 = arc.end, head1 = arc.heading;
+
+    const leaf1 = petalPoints(pos1, 160*Math.PI/180, 50, 25, 22);
+    segs.push({ pts:[pos1, ...leaf1], color:"#2e8b57", width:1.6, glow:6 });
+
+    arc = turtleCircle(pos1, head1, 250, 20);
+    segs.push({ pts: arc.pts, color:"#2e8b57", width:4.2, glow:6 });
+    let pos2 = arc.end, head2 = arc.heading;
+
+    const leaf2 = petalPoints(pos2, 20*Math.PI/180, 55, 28, 22);
+    segs.push({ pts:[pos2, ...leaf2], color:"#2e8b57", width:1.6, glow:6 });
+
+    arc = turtleCircle(pos2, head2, 250, 30);
+    segs.push({ pts: arc.pts, color:"#2e8b57", width:4.2, glow:6 });
+
+    return segs;
+  }
+
+  const segments = buildSegments();
+
+  // flatten for a global progress index + compute bounding box
+  let totalPoints = 0;
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  segments.forEach(seg=>{
+    totalPoints += seg.pts.length;
+    seg.pts.forEach(([x,y])=>{
+      if(x<minX)minX=x; if(x>maxX)maxX=x;
+      if(y<minY)minY=y; if(y>maxY)maxY=y;
+    });
+  });
+  const bbox = {minX,maxX,minY,maxY};
+
+  // ============================================================
+  // 2. CANVAS / VIEW
+  // ============================================================
+
+  const canvas = document.getElementById('flowerCanvas');
+  const ctx = canvas.getContext('2d');
+  const statusEl = document.getElementById('status');
+  let view = { cx:0, cy:0, scale:1, dpr:1 };
+
+  function resizeCanvas(){
+    const cssSize = canvas.parentElement.clientWidth;
+    const dpr = Math.min(window.devicePixelRatio||1, 2.5);
+    canvas.width = cssSize*dpr;
+    canvas.height = cssSize*dpr;
+    canvas.style.width = cssSize+"px";
+    canvas.style.height = cssSize+"px";
+
+    const w = bbox.maxX-bbox.minX, h = bbox.maxY-bbox.minY;
+    const pad = 0.12;
+    const scale = Math.min(canvas.width/(w*(1+pad)), canvas.height/(h*(1+pad)));
+    const midX = (bbox.minX+bbox.maxX)/2;
+    // bias vertical center slightly up so the stem has room
+    const cyTurtle = bbox.maxY - h*0.30;
+
+    view = { cx: canvas.width/2 - midX*scale, cy: canvas.height/2 + cyTurtle*scale, scale, dpr };
+  }
+
+  function toCanvas(p){
+    return [ view.cx + p[0]*view.scale, view.cy - p[1]*view.scale ];
+  }
+
+  function clear(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+
+  function strokeSeg(seg, from, to){
+    if(to<=from) return;
+    ctx.save();
+    ctx.lineJoin='round';
+    ctx.lineCap='round';
+    ctx.shadowColor = seg.color;
+    ctx.shadowBlur = seg.glow*view.dpr;
+    ctx.strokeStyle = seg.color;
+    ctx.lineWidth = seg.width*view.dpr*(view.scale/2.1);
+    ctx.beginPath();
+    let started=false;
+    for(let i=from;i<to;i++){
+      const [cx,cy] = toCanvas(seg.pts[i]);
+      if(!started){ ctx.moveTo(cx,cy); started=true; }
+      else ctx.lineTo(cx,cy);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawFull(){
+    clear();
+    segments.forEach(seg=> strokeSeg(seg, 0, seg.pts.length));
+  }
+
+  // ============================================================
+  // 3. PROGRESSIVE "PEN" ANIMATION
+  // ============================================================
+
+  let animId = null;
+  let done = false;
+
+  function statusText(fracComplete){
+    if(fracComplete>=1) return 'اكتمل الرسم ✓';
+    const pct = Math.round(fracComplete*100);
+    return 'جارٍ الرسم… ' + pct + '%';
+  }
+
+  function animate(){
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduced){
+      drawFull();
+      finish();
+      return;
+    }
+
+    clear();
+    canvas.classList.remove('spin');
+    done = false;
+    cancelAnimationFrame(animId);
+
+    const DURATION = 4600; // ms for the whole continuous line
+    const t0 = performance.now();
+
+    function frame(now){
+      const t = Math.min(1, (now-t0)/DURATION);
+      // ease-out so it settles gently at the end
+      const eased = 1 - Math.pow(1-t, 2);
+      const targetPoint = eased*totalPoints;
+
+      clear();
+      let consumed = 0;
+      for(const seg of segments){
+        const segLen = seg.pts.length;
+        if(consumed+segLen <= targetPoint){
+          strokeSeg(seg, 0, segLen);
+        } else {
+          const local = Math.max(0, Math.floor(targetPoint-consumed));
+          strokeSeg(seg, 0, local);
+          break;
+        }
+        consumed += segLen;
+      }
+
+      statusEl.innerHTML = statusText(t) + '<span class="cursor"></span>';
+
+      if(t<1){
+        animId = requestAnimationFrame(frame);
+      } else {
+        drawFull();
+        finish();
+      }
+    }
+    animId = requestAnimationFrame(frame);
+  }
+
+  function finish(){
+    done = true;
+    statusEl.textContent = 'اكتمل الرسم ✓';
+    requestAnimationFrame(()=> canvas.classList.add('spin'));
+  }
+
+  function skip(){
+    cancelAnimationFrame(animId);
+    drawFull();
+    finish();
+  }
+
+  window.addEventListener('resize', ()=>{
+    resizeCanvas();
+    if(done) drawFull();
+  });
+
+  document.getElementById('replayBtn').addEventListener('click', ()=>{
+    resizeCanvas();
+    animate();
+  });
+  document.getElementById('skipBtn').addEventListener('click', skip);
+
+  // ============================================================
+  // 4. BOOT
+  // ============================================================
+  resizeCanvas();
+  animate();
+
+})();
+</script>
+</body>
+</html>
