@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الزنبقة الزرقاء ورسالة النزيف</title>
+    <title>الزنبقة الزرقاء ودم الحب</title>
     <style>
         body {
             margin: 0;
@@ -36,7 +36,8 @@
 
         let drawQueue = [];
         let currentIndex = 0;
-        
+        let petalEndPoints = []; // نقاط أطراف البتلات
+
         // متغيرات مراحل الرسم
         let isDrawingFlower = true;
         let isBleeding = false;
@@ -87,25 +88,7 @@
         drawQueue = drawQueue.concat(generateReceptacle());
 
         // -----------------------------------------
-        // 3. الأسدية الفضية
-        // -----------------------------------------
-        const stamens = [];
-        for (let s = 0; s < 6; s++) {
-            let stamenAngle = (s / 6) * 2 * Math.PI + 0.2;
-            for (let j = 0; j < 35; j++) {
-                let dist = 10 + j * 2.2;
-                if (dist > MAX_RADIUS * 0.65) break;
-                let color = j < 30 ? 
-                    `rgba(200, 190, 230, ${0.25 - (j/35)*0.15})` : 
-                    `rgba(255, 255, 255, 0.3)`;
-                stamens.push({ distance: dist, angle: stamenAngle, w: 2, h: j < 30 ? 4 : 12, color });
-            }
-        }
-        stamens.sort((a, b) => a.distance - b.distance);
-        drawQueue = drawQueue.concat(stamens);
-
-        // -----------------------------------------
-        // 4. بتلات الزهرة مع أطراف سوداء
+        // 3. بتلات الزهرة الزرقاء (تأتي أولاً)
         // -----------------------------------------
         const lilyPetals = [];
         const numPetals = 6;
@@ -139,10 +122,35 @@
                 
                 let color = `rgba(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)}, ${alpha})`;
                 lilyPetals.push({ distance, angle, w, h, color });
+
+                // تخزين نقطة نهاية كل بتلة للنزيف (آخر حلقة في البتلة)
+                if (j === ringsPerPetal - 1) {
+                    let endX = cx + distance * Math.cos(angle);
+                    let endY = cy + distance * Math.sin(angle);
+                    petalEndPoints.push({ x: endX, y: endY, angle: petalAngle });
+                }
             }
         }
         lilyPetals.sort((a, b) => a.distance - b.distance);
-        drawQueue = drawQueue.concat(lilyPetals);
+        drawQueue = drawQueue.concat(lilyPetals); // البتلات الزرقاء أولاً
+
+        // -----------------------------------------
+        // 4. الأسدية البيضاء (تأتي ثانياً وتتراكب فوق الأزرق)
+        // -----------------------------------------
+        const stamens = [];
+        for (let s = 0; s < 6; s++) {
+            let stamenAngle = (s / 6) * 2 * Math.PI + 0.2;
+            for (let j = 0; j < 35; j++) {
+                let dist = 10 + j * 2.2;
+                if (dist > MAX_RADIUS * 0.65) break;
+                let color = j < 30 ? 
+                    `rgba(200, 190, 230, ${0.25 - (j/35)*0.15})` : 
+                    `rgba(255, 255, 255, 0.3)`;
+                stamens.push({ distance: dist, angle: stamenAngle, w: 2, h: j < 30 ? 4 : 12, color });
+            }
+        }
+        stamens.sort((a, b) => a.distance - b.distance);
+        drawQueue = drawQueue.concat(stamens); // الأسدية تتراكب فوق البتلات
 
         // -----------------------------------------
         // 5. أنيميشن الرسم البطيء للزهرة
@@ -158,64 +166,67 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // ----------------------
-        // مرحلة النزيف (الدم الأزرق)
+        // مرحلة النزيف (من أطراف البتلات)
         // ----------------------
         function startBleeding() {
             isDrawingFlower = false;
             isBleeding = true;
-            startBleedDrops(); // بدء النزيف للأسفل
+            startBleedDrops();
         }
 
-        // يبدأ النزيف من أسفل الساق وينزل للأسفل
         function startBleedDrops() {
-            if (bleedStep > 40) {
+            // 40 خطوة نزول للقطرات
+            if (bleedStep > 45) {
                 isBleeding = false;
-                setTimeout(showLoveText, 600); // بعد النزيف، تظهر الرسالة
+                setTimeout(showLoveText, 500); // بعد النزيف، تظهر الرسالة
                 return;
             }
             
-            let t = bleedStep / 40;
-            // نقطة بداية النزيف: أسفل الساق تماماً
-            const startPoint = stemPoints[stemPoints.length - 1];
+            let t = bleedStep / 45;
             
-            // رسم قطرات الدم على شكل حلقات بيضاوية صغيرة متراكمة
-            for (let i = 0; i < 6; i++) {
-                let spread = (i - 3) * 5;
-                let x = startPoint.x + spread - (t * 12); // الميلان مع الساق
-                let y = startPoint.y + 15 + (t * 200); // النزول للأسفل
+            // رسم قطرات الدم من أطراف البتلات الست
+            for (let p = 0; p < petalEndPoints.length; p++) {
+                let end = petalEndPoints[p];
                 
+                // حركة القطرة: تتحرك من طرف البتلة إلى الأسفل (مع الميلان قليلاً للمركز)
+                let progressX = end.x - (end.x - cx) * t * 0.5; // تنزلق نحو المركز قليلاً
+                let progressY = end.y + (t * 180); // تنزل للأسفل
+                
+                // رسم قطرة الدم (حلقة بيضاوية باهتة)
                 ctx.save();
                 ctx.beginPath();
-                ctx.ellipse(x, y, 5 + t * 4, 8 + t * 6, 0, 0, Math.PI * 2);
+                // شكل الدمعة: بيضاوي مائل قليلاً
+                ctx.ellipse(progressX, progressY, 4 + t * 3, 6 + t * 5, end.angle, 0, Math.PI * 2);
                 
-                // لون الدم الأزرق الغامق، بهتان يزداد كلما ابتعد
+                // لون الدم الأزرق الغامق، بهتان يزداد كلما ابتعدت القطرة
                 let alpha = 0.6 - t * 0.4;
                 ctx.fillStyle = `rgba(20, 15, 50, ${Math.max(0.1, alpha)})`;
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = 'rgba(20, 15, 50, 0.5)';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = 'rgba(20, 15, 50, 0.4)';
                 ctx.fill();
                 ctx.restore();
             }
             
             bleedStep++;
-            setTimeout(startBleedDrops, 100); // نزيف بطيء جداً
+            setTimeout(startBleedDrops, 120); // نزول بطيء للقطرات
         }
 
         // ----------------------
-        // مرحلة الرسالة (I love u samo)
+        // مرحلة الرسالة (I love u samo) - ترسم بواسطة القطرات
         // ----------------------
         function showLoveText() {
             let text = "I love u samo";
-            // إعادة ضبط التوهج للرسالة
+            // ضبط التوهج للجمله
             ctx.shadowBlur = 25;
             ctx.shadowColor = 'rgba(40, 30, 70, 0.4)';
             
-            // استخدام خط يشبه خط اليد
-            ctx.font = "bold 55px 'Brush Script MT', 'Great Vibes', cursive";
+            // خط جميل
+            ctx.font = "bold 45px 'Brush Script MT', 'Great Vibes', cursive";
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            let yPos = cy + 420; // أسفل نقطة نهاية النزيف
+            // **موقع الجملة: تحت الزهرة مباشرة (فوق بداية الجذع)**
+            let yPos = cy + 170; 
             let step = 0;
             
             let textInterval = setInterval(() => {
@@ -227,11 +238,23 @@
                 // كتابة الحروف المتراكمة
                 let partialText = text.substring(0, step);
                 
-                ctx.fillStyle = `rgba(40, 25, 70, ${0.7})`;
+                // لون الحروف يشبه الدم الأزرق
+                ctx.fillStyle = `rgba(40, 25, 70, ${0.8})`;
                 ctx.fillText(partialText, cx, yPos);
                 
+                // إضافة قطرات دم صغيرة حول كل حرف عند ظهوره لتحقيق "القطرات ترسم الجمله"
+                for (let d = 0; d < 3; d++) {
+                    let dropX = cx + (Math.random() - 0.5) * (step * 25);
+                    let dropY = yPos + (Math.random() - 0.5) * 20;
+                    ctx.beginPath();
+                    ctx.arc(dropX, dropY, 2 + Math.random() * 4, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(20, 15, 50, ${0.2 + Math.random() * 0.3})`;
+                    ctx.shadowBlur = 15;
+                    ctx.fill();
+                }
+                
                 step++;
-            }, 180); // بطء كتابة الحروف
+            }, 180); // بطء ظهور الحروف
         }
 
         // ----------------------
@@ -242,7 +265,7 @@
 
             if (currentIndex >= drawQueue.length) {
                 isDrawingFlower = false;
-                setTimeout(startBleeding, 400); // عند انتهاء الزهرة، انتظر قليلاً ثم ابدأ النزيف
+                setTimeout(startBleeding, 300); // عند انتهاء الزهرة، انتظر قليلاً ثم ابدأ النزيف
                 return;
             }
 
@@ -292,9 +315,9 @@
         // بدء الرسم
         setTimeout(drawItemFromQueue, 600);
 
-        // إعادة ضبط الشاشة (يُفضل تحديث الصفحة لتجنب الأخطاء)
+        // إعادة ضبط الشاشة
         window.addEventListener('resize', () => {
-            // للحصول على أفضل تجربة، لو سمحت قم بتحديث الصفحة (F5) عند تغيير حجم النافذة.
+            // للحصول على أفضل تجربة، يُفضل تحديث الصفحة (F5) عند تغيير حجم النافذة.
         });
 
     </script>
