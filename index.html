@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الزنبقة الزرقاء - حلقات عريضة وباهتة</title>
+    <title>الزهرة الزرقاء الغامضة ورسالة الدم</title>
     <style>
         body {
             margin: 0;
@@ -14,19 +14,61 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            font-family: sans-serif;
         }
         canvas {
             display: block;
-            background-color: #04020a;
+            z-index: 1;
+        }
+        #start-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 50px;
+            pointer-events: none;
+        }
+        #start-btn {
+            background: rgba(50, 40, 80, 0.6);
+            border: 1px solid rgba(100, 80, 150, 0.5);
+            padding: 15px 30px;
+            color: #a0a0c0;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            pointer-events: auto;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 20px rgba(50, 40, 80, 0.3);
+            transition: all 0.3s;
+            z-index: 20;
+            display: none; /* سيظهر فقط إذا منع المتصفح الصوت */
+        }
+        #start-btn:hover {
+            background: rgba(80, 60, 150, 0.7);
+            color: white;
+            box-shadow: 0 0 30px rgba(80, 60, 180, 0.5);
         }
     </style>
 </head>
 <body>
     <canvas id="flowerCanvas"></canvas>
+    <div id="start-overlay"><button id="start-btn">انقر لتشغيل الموسيقى والرسم</button></div>
+    
+    <!-- موسيقى بيانو هادئة -->
+    <audio id="bgMusic" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+        متصفحك لا يدعم الصوت.
+    </audio>
 
     <script>
         const canvas = document.getElementById('flowerCanvas');
         const ctx = canvas.getContext('2d');
+        const bgMusic = document.getElementById('bgMusic');
+        const startBtn = document.getElementById('start-btn');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -34,14 +76,20 @@
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
 
+        // لإدارة مراحل الرسم
         let drawQueue = [];
         let currentIndex = 0;
+        let isDrawingFlower = true; // مرحلة رسم الزهرة
+        let isBleeding = false; // مرحلة النزيف
+        let isTextShowing = false; // مرحلة النص
+        let bloodParticles = []; // جزيئات الدم المتنازلة
 
-        // الحجم الآمن للزهرة
+        // معامل التمدد الآمن
         const MAX_RADIUS = Math.min(canvas.width, canvas.height) * 0.35; 
+        const CENTER_GAP = 130; 
 
         // -----------------------------------------
-        // 1. توليد الساق المتصلة
+        // 1. رسم الساق
         // -----------------------------------------
         function generateStemPoints() {
             const points = [];
@@ -51,7 +99,7 @@
             for (let i = 0; i <= steps; i++) {
                 let t = i / steps;
                 let x = startX - (t * 22); 
-                let y = startY - (t * (350 - 130)); 
+                let y = startY - (t * (350 - CENTER_GAP)); 
                 points.push({x, y});
             }
             return points;
@@ -69,11 +117,10 @@
             const loops = [];
             for (let i = 0; i < 80; i++) {
                 let t = i / 80;
-                let yOffset = 130 - (t * 40); 
+                let yOffset = CENTER_GAP - (t * 40); 
                 let xOffset = -15 + (t * 30);
                 let w = 15 + t * 25;
                 let h = 10 + t * 15;
-                // **بت أغمق وأكثر بهتاناً**
                 let color = `rgba(20, 25, 45, ${0.4 - t * 0.15})`;
                 loops.push({ type: 'base', x: cx + xOffset, y: cy + yOffset, w, h, angle: 0, color });
             }
@@ -82,7 +129,26 @@
         drawQueue = drawQueue.concat(generateReceptacle());
 
         // -----------------------------------------
-        // 3. بتلات الزنبقة (الحلقات المتتالية العريضة)
+        // 3. الأسدية الفضية (الخطوط البيضاء في المنتصف كما في الصورة)
+        // -----------------------------------------
+        const stamens = [];
+        for (let s = 0; s < 6; s++) {
+            let stamenAngle = (s / 6) * 2 * Math.PI + 0.2;
+            for (let j = 0; j < 35; j++) {
+                let dist = 10 + j * 2.2;
+                if (dist > MAX_RADIUS * 0.65) break;
+                // جعل خطوط الأسدية فضية/بيضاء باهتة لتطابق الصورة
+                let color = j < 30 ? 
+                    `rgba(200, 190, 230, ${0.25 - (j/35)*0.15})` : 
+                    `rgba(255, 255, 255, 0.3)`;
+                stamens.push({ distance: dist, angle: stamenAngle, w: 2, h: j < 30 ? 4 : 12, color });
+            }
+        }
+        stamens.sort((a, b) => a.distance - b.distance);
+        drawQueue = drawQueue.concat(stamens);
+
+        // -----------------------------------------
+        // 4. بتلات الزهرة مع أطراف سوداء
         // -----------------------------------------
         const lilyPetals = [];
         const numPetals = 6;
@@ -101,14 +167,22 @@
                 let w = 10 + shapeFactor * 25; 
                 let h = 15 + shapeFactor * 30; 
                 
-                // **ألوان باهتة جداً (الشفافية Alpha منخفضة)**
+                // --- تعديل اللون ليكون الأطراف سوداء قليلاً ---
                 let alpha = 0.25 - (t * 0.20); 
                 alpha = Math.max(0.02, alpha);
+                
                 let r = 30 + t * 50;
                 let g = 30 + t * 60;
                 let b = 100 + t * 80;
                 
-                let color = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                // تحويل الألوان إلى الأسود عند الأطراف (t=1 => black)
+                let fadeToBlack = Math.pow(t, 2.5);
+                r = r * (1 - fadeToBlack) + 5 * fadeToBlack;
+                g = g * (1 - fadeToBlack) + 5 * fadeToBlack;
+                b = b * (1 - fadeToBlack) + 5 * fadeToBlack;
+                // ---------------------------------------------
+                
+                let color = `rgba(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)}, ${alpha})`;
                 lilyPetals.push({ distance, angle, w, h, color });
             }
         }
@@ -116,34 +190,148 @@
         drawQueue = drawQueue.concat(lilyPetals);
 
         // -----------------------------------------
-        // 4. الأسدية الباهتة
+        // 5. أنيميشن الرسم البطيء
         // -----------------------------------------
-        const stamens = [];
-        for (let s = 0; s < 6; s++) {
-            let stamenAngle = (s / 6) * 2 * Math.PI + 0.2;
-            for (let j = 0; j < 35; j++) {
-                let dist = 10 + j * 2.2;
-                if (dist > MAX_RADIUS * 0.65) break;
-                let color = j < 30 ? 
-                    `rgba(90, 80, 110, ${0.25 - (j/35)*0.15})` : 
-                    `rgba(180, 160, 190, 0.3)`;
-                stamens.push({ distance: dist, angle: stamenAngle, w: 2, h: j < 30 ? 4 : 12, color });
-            }
-        }
-        stamens.sort((a, b) => a.distance - b.distance);
-        drawQueue = drawQueue.concat(stamens);
-
-        // -----------------------------------------
-        // 5. إعدادات الرسم (العريضة والباهتة)
-        // -----------------------------------------
-        // **تم زيادة العرض وجعل الظل خفيفاً جداً ليزداد البهتان**
+        ctx.lineWidth = 5.5;
         ctx.shadowBlur = 15; 
-        ctx.shadowColor = 'rgba(50, 40, 80, 0.15)'; 
+        ctx.shadowColor = 'rgba(30, 20, 60, 0.2)'; 
 
         const DRAW_DELAY_MS = 55;
 
+        // خلفية ثابتة
+        ctx.fillStyle = '#04020a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // ----------------------
+        // مرحلة النزيف (الدم الأزرق)
+        // ----------------------
+        function startBleeding() {
+            isDrawingFlower = false;
+            isBleeding = true;
+            bleedDropDown();
+        }
+
+        let bleedIndex = 0;
+        function bleedDropDown() {
+            if (bleedIndex > 40) {
+                isBleeding = false;
+                setTimeout(showLoveText, 800); // تأخير بسيط قبل ظهور النص
+                return;
+            }
+            
+            let t = bleedIndex / 40;
+            // تحديد نقطة بداية النزيف (قاعدة الساق)
+            const startPoint = stemPoints[stemPoints.length - 1];
+            
+            for (let i = 0; i < 6; i++) {
+                let spread = (i - 3) * 5;
+                let x = startPoint.x + spread - (t * 15);
+                let y = startPoint.y + 10 + (t * 180) + (Math.sin(i + bleedIndex) * 5);
+                
+                // رسم قطرات الدم الأزرق الغامق كحلقات بيضاوية
+                ctx.save();
+                ctx.beginPath();
+                ctx.ellipse(x, y, 3 + t * 5, 5 + t * 8, 0, 0, Math.PI * 2);
+                let alpha = 0.7 - t;
+                ctx.fillStyle = `rgba(30, 20, 60, ${alpha})`;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = 'rgba(30, 20, 60, 0.4)';
+                ctx.fill();
+                ctx.restore();
+            }
+            
+            bleedIndex++;
+            setTimeout(bleedDropDown, 100);
+        }
+
+        // ----------------------
+        // مرحلة الرسالة (I love u samo)
+        // ----------------------
+        function showLoveText() {
+            isTextShowing = true;
+            let text = "I love u samo";
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = 'rgba(100, 80, 150, 0.5)';
+            ctx.font = "bold 60px 'Brush Script MT', 'Great Vibes', cursive, 'Comic Sans MS'";
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            let yPos = cy + 420 + 50; // تحت الساق مباشرة
+            let step = 0;
+            
+            let textInterval = setInterval(() => {
+                if (step > text.length) {
+                    clearInterval(textInterval);
+                    startParticles(); // بدء الجماليات بعد النص
+                    return;
+                }
+                let partialText = text.substring(0, step);
+                
+                // رسم تأثير الدم المتساقط على الحروف
+                ctx.fillStyle = `rgba(40, 30, 80, ${0.7 - step/text.length * 0.2})`;
+                
+                // إضافة بعض الانزلاق السفلي لبعض الحروف لتشبه الدم
+                ctx.fillText(partialText, cx, yPos - Math.random() * 5);
+                ctx.restore();
+                
+                step++;
+            }, 150);
+            
+            // إرجاع التوهج الافتراضي
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = 'rgba(30, 20, 60, 0.2)'; 
+        }
+
+        // ----------------------
+        // جماليات إضافية (جسيمات متوهجة)
+        // ----------------------
+        let particleSystem = [];
+
+        function startParticles() {
+            for (let i = 0; i < 50; i++) {
+                particleSystem.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    size: Math.random() * 3 + 1,
+                    alpha: Math.random() * 0.5 + 0.1
+                });
+            }
+            animateParticles();
+        }
+
+        function animateParticles() {
+            ctx.fillStyle = 'rgba(4, 2, 10, 0.05)'; // تلاشي خفي للجسيمات
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            particleSystem.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(150, 130, 200, ${p.alpha})`;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = 'rgba(150, 130, 200, 0.2)';
+                ctx.fill();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+
+        // ----------------------
+        // حلقة الرسم الرئيسية
+        // ----------------------
         function drawItemFromQueue() {
-            if (currentIndex >= drawQueue.length) return;
+            if (currentIndex >= drawQueue.length) {
+                // انتهى رسم الزهرة، ابدأ النزيف
+                setTimeout(startBleeding, 100);
+                return;
+            }
 
             const item = drawQueue[currentIndex];
 
@@ -167,7 +355,6 @@
                 ctx.restore();
             } 
             else {
-                // رسم البتلات والأسدية بحلقات **عريضة وباهتة**
                 const ring = item;
                 const x = cx + ring.distance * Math.cos(ring.angle);
                 const y = cy + ring.distance * Math.sin(ring.angle);
@@ -179,9 +366,7 @@
                 ctx.beginPath();
                 ctx.ellipse(0, 0, ring.w, ring.h, 0, 0, Math.PI * 2);
                 ctx.strokeStyle = ring.color;
-                
-                // **زيادة عرض الخطوط لتصل إلى 6 و 7**
-                ctx.lineWidth = ring.distance < 30 ? 7 : 5; 
+                ctx.lineWidth = ring.distance < 30 ? 7 : 5; // خطوط عريضة
                 ctx.stroke();
                 
                 ctx.restore();
@@ -191,10 +376,37 @@
             setTimeout(drawItemFromQueue, DRAW_DELAY_MS);
         }
 
-        // رسم الخلفية وبدء الأنيميشن
-        ctx.fillStyle = '#04020a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        setTimeout(drawItemFromQueue, 600);
+        // -----------------------------------------
+        // تشغيل الصوت عند التفاعل الأول
+        // -----------------------------------------
+        function startApp() {
+            bgMusic.volume = 0.3; // حجم الموسيقى هادئ جداً
+            bgMusic.play().catch(() => {
+                startBtn.style.display = "block";
+            });
+            startBtn.style.display = "none";
+            setTimeout(drawItemFromQueue, 600);
+        }
+
+        document.body.addEventListener('click', () => {
+            if (bgMusic.paused) {
+                startApp();
+            }
+        });
+
+        startBtn.addEventListener('click', () => {
+            startApp();
+        });
+
+        // محاولة تشغيل الصوت تلقائياً
+        startApp();
+
+        // ----------------------
+        // إعادة ضبط الشاشة
+        // ----------------------
+        window.addEventListener('resize', () => {
+            // يُفضل تحديث الصفحة للحصول على أفضل تناسب
+        });
 
     </script>
 </body>
