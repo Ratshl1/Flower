@@ -1,83 +1,79 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width,
-                   initial-scale=1.0,
-                   maximum-scale=1.0,
-                   user-scalable=no">
+<meta name="viewport"
+      content="width=device-width,
+      initial-scale=1.0,
+      maximum-scale=1.0,
+      user-scalable=no">
 
-    <title>الزنبقة الزرقاء</title>
+<title>Blue Lily</title>
 
-    <style>
+<style>
 
-        html,
-        body {
-            margin: 0;
-            padding: 0;
+html,
+body {
+    margin: 0;
+    padding: 0;
 
-            width: 100%;
-            height: 100%;
+    width: 100%;
+    height: 100%;
 
-            overflow: hidden;
+    overflow: hidden;
 
-            background: #05020a;
+    background: #05020a;
 
-            touch-action: none;
-        }
+    touch-action: none;
+}
 
-        #scene {
-            position: relative;
+#scene {
+    position: relative;
 
-            width: 100vw;
-            height: 100vh;
+    width: 100vw;
+    height: 100vh;
 
-            overflow: hidden;
-        }
+    overflow: hidden;
+}
 
-        canvas {
-            position: absolute;
+canvas {
+    position: absolute;
 
-            left: 0;
-            top: 0;
+    left: 0;
+    top: 0;
 
-            width: 100%;
-            height: 100%;
+    width: 100%;
+    height: 100%;
 
-            display: block;
+    display: block;
 
-            pointer-events: none;
-        }
+    pointer-events: none;
+}
 
-        /* طبقة النص فقط */
-        #textCanvas {
-            z-index: 3;
-        }
+#flowerCanvas {
+    z-index: 1;
+}
 
-        #flowerCanvas {
-            z-index: 1;
-        }
+#bloodCanvas {
+    z-index: 2;
+}
 
-        #bloodCanvas {
-            z-index: 2;
-        }
+#textCanvas {
+    z-index: 3;
+}
 
-    </style>
+</style>
 </head>
 
 <body>
 
 <div id="scene">
 
-    <!-- الزهرة -->
     <canvas id="flowerCanvas"></canvas>
 
-    <!-- الدم -->
     <canvas id="bloodCanvas"></canvas>
 
-    <!-- النص -->
     <canvas id="textCanvas"></canvas>
 
 </div>
@@ -86,7 +82,7 @@
 <script>
 
 /* =========================================================
-   CANVASES
+   CANVAS
 ========================================================= */
 
 const flowerCanvas =
@@ -109,10 +105,6 @@ const textCtx =
     textCanvas.getContext("2d");
 
 
-/* =========================================================
-   VARIABLES
-========================================================= */
-
 let W;
 let H;
 
@@ -121,7 +113,13 @@ let cy;
 
 let dpr;
 
+
+/* =========================================================
+   FLOWER VARIABLES
+========================================================= */
+
 let drawQueue = [];
+
 let currentIndex = 0;
 
 let petalEndPoints = [];
@@ -209,46 +207,6 @@ function resizeCanvas() {
 
 
 /* =========================================================
-   CLEAR ALL
-========================================================= */
-
-function clearAll() {
-
-    flowerCtx.clearRect(
-        0,
-        0,
-        W,
-        H
-    );
-
-    bloodCtx.clearRect(
-        0,
-        0,
-        W,
-        H
-    );
-
-    textCtx.clearRect(
-        0,
-        0,
-        W,
-        H
-    );
-
-
-    flowerCtx.fillStyle =
-        "#05020a";
-
-    flowerCtx.fillRect(
-        0,
-        0,
-        W,
-        H
-    );
-}
-
-
-/* =========================================================
    BUILD FLOWER
 ========================================================= */
 
@@ -264,10 +222,16 @@ function buildFlower() {
     const MAX_RADIUS =
         Math.min(W, H) * 0.35;
 
+
+    /*
+       هذه المسافة هي نقطة اتصال
+       الزهرة بالجذع.
+    */
+
     const CENTER_GAP =
         Math.min(
-            130,
-            H * 0.18
+            125,
+            H * 0.17
         );
 
 
@@ -279,13 +243,27 @@ function buildFlower() {
 
         const points = [];
 
-        const steps = 150;
+        const steps = 170;
 
-        const startY =
+
+        /*
+           يبدأ الجذع من أسفل الشاشة
+           ويصعد حتى مركز الزهرة تقريبًا.
+
+           سابقًا كان يتوقف قبل الزهرة،
+           لذلك ظهر منفصلًا.
+        */
+
+        const bottomY =
             Math.min(
-                H - 10,
-                cy + 350
+                H - 5,
+                cy + 390
             );
+
+
+        const topY =
+            cy + CENTER_GAP - 5;
+
 
         const startX =
             cx + 20;
@@ -301,20 +279,28 @@ function buildFlower() {
                 i / steps;
 
 
+            /*
+               انحناء خفيف للجذع
+            */
+
+            const curve =
+                Math.sin(
+                    t * Math.PI
+                ) * 18;
+
+
             const x =
                 startX -
-                t * 22;
+                t * 22 +
+                curve;
 
 
             const y =
-                startY -
+                bottomY -
                 t *
                 (
-                    startY -
-                    (
-                        cy +
-                        CENTER_GAP
-                    )
+                    bottomY -
+                    topY
                 );
 
 
@@ -347,27 +333,27 @@ function buildFlower() {
 
 
     /* =====================================================
-       FLOWER BASE
+       BASE OF FLOWER
     ===================================================== */
 
     for (
         let i = 0;
-        i < 80;
+        i < 85;
         i++
     ) {
 
         const t =
-            i / 79;
+            i / 84;
 
 
         const yOffset =
             CENTER_GAP -
-            t * 40;
+            t * 42;
 
 
         const xOffset =
-            -15 +
-            t * 30;
+            -16 +
+            t * 32;
 
 
         drawQueue.push({
@@ -384,18 +370,18 @@ function buildFlower() {
 
             w:
                 15 +
-                t * 25,
+                t * 27,
 
             h:
                 10 +
-                t * 15,
+                t * 16,
 
             color:
                 `rgba(
                     20,
                     25,
                     45,
-                    ${0.4 - t * 0.15}
+                    ${0.42 - t * 0.15}
                 )`
         });
     }
@@ -428,6 +414,7 @@ function buildFlower() {
 
 
         let finalX = cx;
+
         let finalY = cy;
 
 
@@ -472,14 +459,12 @@ function buildFlower() {
 
             const w =
                 10 +
-                shapeFactor *
-                25;
+                shapeFactor * 25;
 
 
             const h =
                 15 +
-                shapeFactor *
-                30;
+                shapeFactor * 30;
 
 
             let alpha =
@@ -517,27 +502,21 @@ function buildFlower() {
 
 
             r =
-                r *
-                (1 - fade)
+                r * (1 - fade)
                 +
-                5 *
-                fade;
+                5 * fade;
 
 
             g =
-                g *
-                (1 - fade)
+                g * (1 - fade)
                 +
-                5 *
-                fade;
+                5 * fade;
 
 
             b =
-                b *
-                (1 - fade)
+                b * (1 - fade)
                 +
-                5 *
-                fade;
+                5 * fade;
 
 
             lilyPetals.push({
@@ -577,7 +556,10 @@ function buildFlower() {
         }
 
 
-        /* نقطة بداية النزيف */
+        /*
+           نقطة نزول الدم
+        */
+
         petalEndPoints.push({
 
             startX:
@@ -673,13 +655,17 @@ function buildFlower() {
                         190,
                         230,
                         ${0.25 -
-                        (j / 35) *
-                        0.15}
+                        (j / 35) * 0.15}
                     )`
 
                     :
 
-                    "rgba(255,255,255,0.3)"
+                    "rgba(
+                        255,
+                        255,
+                        255,
+                        0.3
+                    )"
             });
         }
     }
@@ -719,10 +705,9 @@ function drawItemFromQueue() {
             false;
 
 
-        /* ابدأ النزيف */
         setTimeout(
             startBleeding,
-            500
+            700
         );
 
 
@@ -757,6 +742,10 @@ function drawItemFromQueue() {
             ];
 
 
+        /*
+           جسم الجذع الأساسي
+        */
+
         flowerCtx.beginPath();
 
 
@@ -773,11 +762,11 @@ function drawItemFromQueue() {
 
 
         flowerCtx.strokeStyle =
-            "rgba(35,45,60,0.72)";
+            "rgba(31,42,54,0.95)";
 
 
         flowerCtx.lineWidth =
-            6.5;
+            9;
 
 
         flowerCtx.lineCap =
@@ -785,10 +774,117 @@ function drawItemFromQueue() {
 
 
         flowerCtx.shadowBlur =
+            3;
+
+
+        flowerCtx.shadowColor =
+            "rgba(20,30,45,0.5)";
+
+
+        flowerCtx.stroke();
+
+
+        /*
+           الخط الداخلي للجذع
+        */
+
+        flowerCtx.beginPath();
+
+
+        flowerCtx.moveTo(
+            previous.x - 1.5,
+            previous.y
+        );
+
+
+        flowerCtx.lineTo(
+            current.x - 1.5,
+            current.y
+        );
+
+
+        flowerCtx.strokeStyle =
+            "rgba(65,78,88,0.65)";
+
+
+        flowerCtx.lineWidth =
+            2;
+
+
+        flowerCtx.shadowBlur =
             0;
 
 
         flowerCtx.stroke();
+
+
+        /*
+           تفاصيل صغيرة / عروق على الجذع
+        */
+
+        if (
+            item.idx % 13 === 0
+        ) {
+
+            const px =
+                current.x;
+
+
+            const py =
+                current.y;
+
+
+            flowerCtx.beginPath();
+
+
+            flowerCtx.moveTo(
+                px,
+                py
+            );
+
+
+            flowerCtx.lineTo(
+                px - 9,
+                py - 8
+            );
+
+
+            flowerCtx.strokeStyle =
+                "rgba(70,82,92,0.42)";
+
+
+            flowerCtx.lineWidth =
+                1.3;
+
+
+            flowerCtx.stroke();
+
+
+            flowerCtx.beginPath();
+
+
+            flowerCtx.moveTo(
+                px + 1,
+                py + 3
+            );
+
+
+            flowerCtx.lineTo(
+                px + 8,
+                py - 5
+            );
+
+
+            flowerCtx.strokeStyle =
+                "rgba(15,24,34,0.55)";
+
+
+            flowerCtx.lineWidth =
+                1;
+
+
+            flowerCtx.stroke();
+        }
     }
 
 
@@ -926,11 +1022,18 @@ function drawItemFromQueue() {
 
 
 /* =========================================================
-   BLOOD DROPS
+   BLOOD
 ========================================================= */
 
-let drops = [];
+let bloodDrops = [];
 
+
+/*
+   نستخدم نقاط صغيرة جدًا.
+
+   كل قطرة تبدأ من إحدى البتلات
+   وتنزل ببطء.
+*/
 
 function startBleeding() {
 
@@ -938,34 +1041,24 @@ function startBleeding() {
         true;
 
 
-    drops = [];
+    bloodDrops = [];
 
-
-    /*
-       كل بتلة سيكون لها
-       أكثر من سيل.
-    */
 
     petalEndPoints.forEach(
-        (end, index) => {
+        (end, petalIndex) => {
+
+            /*
+               7 قطرات صغيرة من كل بتلة
+            */
 
             for (
                 let i = 0;
-                i < 3;
+                i < 7;
                 i++
             ) {
 
-                drops.push({
+                bloodDrops.push({
 
-                    /* بداية القطرة */
-                    x:
-                        end.startX,
-
-                    y:
-                        end.startY,
-
-
-                    /* الأصل */
                     startX:
                         end.startX,
 
@@ -973,48 +1066,50 @@ function startBleeding() {
                         end.startY,
 
 
-                    /* تقدم الحركة */
+                    x:
+                        end.startX,
+
+                    y:
+                        end.startY,
+
+
                     progress:
-                        -i * 0.22,
+                        -i * 0.11
+                        -
+                        petalIndex * 0.025,
 
 
-                    /* السرعة */
                     speed:
-                        0.0045 +
+                        0.0025 +
                         Math.random() *
-                        0.0015,
+                        0.0012,
 
 
-                    /* طول السيل */
                     length:
-                        120 +
+                        45 +
                         Math.random() *
                         100,
 
 
-                    /* حجم القطرة */
                     size:
-                        3.5 +
+                        1.6 +
                         Math.random() *
-                        2.5,
+                        1.7,
 
 
-                    /* انحراف */
                     drift:
                         (
-                            Math.random() -
+                            Math.random()
+                            -
                             0.5
-                        ) *
-                        25,
-
-
-                    /* مسار */
-                    trail:
-                        [],
+                        ) * 20,
 
 
                     petal:
-                        index
+                        petalIndex,
+
+                    finished:
+                        false
                 });
             }
         }
@@ -1028,7 +1123,7 @@ function startBleeding() {
 
 
 /* =========================================================
-   ANIMATE BLOOD
+   BLOOD ANIMATION
 ========================================================= */
 
 function animateBlood(time) {
@@ -1039,11 +1134,15 @@ function animateBlood(time) {
 
 
     /*
-       لا نمسح Canvas الدم بالكامل.
-
-       هذا مهم جداً لأننا نريد
-       أن يبقى أثر السيلان.
+       نمسح طبقة الدم فقط.
     */
+
+    bloodCtx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
 
 
     let allFinished =
@@ -1051,7 +1150,7 @@ function animateBlood(time) {
 
 
     for (
-        const drop of drops
+        const drop of bloodDrops
     ) {
 
         drop.progress +=
@@ -1088,16 +1187,21 @@ function animateBlood(time) {
 
 
         /*
-           حركة النزول
+           تسارع خفيف
         */
 
+        const eased =
+            p * p *
+            (3 - 2 * p);
+
+
         const distance =
-            p *
+            eased *
             drop.length;
 
 
         /*
-           انحناء بسيط أثناء النزول
+           حركة صغيرة يمين ويسار
         */
 
         drop.x =
@@ -1110,7 +1214,7 @@ function animateBlood(time) {
                 +
                 drop.petal
             ) *
-            7
+            4
             +
             drop.drift *
             p;
@@ -1122,168 +1226,69 @@ function animateBlood(time) {
 
 
         /*
-           حفظ مسار القطرة
+           القطرة الصغيرة
         */
-
-        drop.trail.push({
-
-            x:
-                drop.x,
-
-            y:
-                drop.y
-        });
-
-
-        if (
-            drop.trail.length >
-            35
-        ) {
-
-            drop.trail.shift();
-        }
-
-
-        /* =================================================
-           رسم السيل
-        ================================================= */
-
-        if (
-            drop.trail.length >
-            1
-        ) {
-
-            bloodCtx.save();
-
-
-            bloodCtx.beginPath();
-
-
-            bloodCtx.moveTo(
-                drop.trail[0].x,
-                drop.trail[0].y
-            );
-
-
-            for (
-                let i = 1;
-                i <
-                drop.trail.length;
-                i++
-            ) {
-
-                bloodCtx.lineTo(
-                    drop.trail[i].x,
-                    drop.trail[i].y
-                );
-            }
-
-
-            bloodCtx.strokeStyle =
-                "rgba(35,125,255,0.72)";
-
-
-            bloodCtx.lineWidth =
-                drop.size *
-                0.85;
-
-
-            bloodCtx.lineCap =
-                "round";
-
-
-            bloodCtx.lineJoin =
-                "round";
-
-
-            bloodCtx.shadowBlur =
-                16;
-
-
-            bloodCtx.shadowColor =
-                "rgba(30,130,255,0.8)";
-
-
-            bloodCtx.stroke();
-
-
-            bloodCtx.restore();
-        }
-
-
-        /* =================================================
-           القطرة في المقدمة
-        ================================================= */
 
         bloodCtx.save();
 
 
         bloodCtx.shadowBlur =
-            20;
+            8;
 
 
         bloodCtx.shadowColor =
-            "rgba(40,150,255,0.9)";
+            "rgba(180,15,25,0.65)";
 
 
-        const gradient =
+        const redGradient =
             bloodCtx.createRadialGradient(
 
                 drop.x -
                 drop.size * 0.3,
 
                 drop.y -
-                drop.size * 0.5,
+                drop.size * 0.3,
 
-                1,
+                0.5,
 
                 drop.x,
 
                 drop.y,
 
-                drop.size * 2.2
+                drop.size * 2
             );
 
 
-        gradient.addColorStop(
+        redGradient.addColorStop(
             0,
-            "rgba(180,230,255,1)"
+            "rgba(255,100,105,0.95)"
         );
 
 
-        gradient.addColorStop(
-            0.3,
-            "rgba(50,160,255,1)"
+        redGradient.addColorStop(
+            0.35,
+            "rgba(205,25,35,0.95)"
         );
 
 
-        gradient.addColorStop(
+        redGradient.addColorStop(
             1,
-            "rgba(20,85,220,0.85)"
+            "rgba(90,5,15,0.85)"
         );
 
 
         bloodCtx.fillStyle =
-            gradient;
+            redGradient;
 
 
         bloodCtx.beginPath();
 
 
-        bloodCtx.ellipse(
-
+        bloodCtx.arc(
             drop.x,
-
             drop.y,
-
             drop.size,
-
-            drop.size * 1.7,
-
             0,
-
-            0,
-
             Math.PI * 2
         );
 
@@ -1304,13 +1309,14 @@ function animateBlood(time) {
 
 
         /*
-           بعد انتهاء الدم
-           انتظر قليلاً ثم اكتب الجملة.
+           بعد انتهاء النزيف،
+           تبدأ القطرات بالتجمع
+           وتكوين الجملة.
         */
 
         setTimeout(
-            showLoveText,
-            700
+            gatherBloodIntoText,
+            500
         );
 
 
@@ -1325,141 +1331,418 @@ function animateBlood(time) {
 
 
 /* =========================================================
-   TEXT
+   CREATE TEXT PARTICLE TARGETS
 ========================================================= */
 
-function showLoveText() {
+function createTextTargets() {
+
+    /*
+       Canvas مؤقت فقط لمعرفة
+       أماكن حروف الجملة.
+    */
+
+    const temp =
+        document.createElement(
+            "canvas"
+        );
+
+
+    temp.width =
+        Math.floor(W * dpr);
+
+
+    temp.height =
+        Math.floor(H * dpr);
+
+
+    const tctx =
+        temp.getContext("2d");
+
+
+    tctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
+
+
+    const fontSize =
+        Math.min(
+            48,
+            W * 0.095
+        );
+
+
+    tctx.font =
+        "bold " +
+        fontSize +
+        "px 'Brush Script MT', 'Great Vibes', 'Comic Sans MS', cursive";
+
+
+    tctx.textAlign =
+        "center";
+
+
+    tctx.textBaseline =
+        "middle";
+
 
     const text =
         "I love u samo";
 
 
-    const yPos =
+    const textY =
         cy + 160;
 
 
     /*
-       مهم جداً:
-
-       لا نمسح flowerCanvas.
-       لا نمسح bloodCanvas.
-
-       النص موجود في Canvas
-       منفصل وشفاف.
+       رسم النص باللون الأبيض
+       على canvas مؤقت.
     */
 
+    tctx.fillStyle =
+        "#ffffff";
 
-    textCtx.clearRect(
-        0,
-        0,
-        W,
-        H
+
+    tctx.fillText(
+        text,
+        cx,
+        textY
     );
 
 
-    textCtx.font =
-        "bold 48px 'Brush Script MT', 'Great Vibes', 'Comic Sans MS', cursive, sans-serif";
-
-
-    textCtx.textAlign =
-        "center";
-
-
-    textCtx.textBaseline =
-        "middle";
-
-
-    let index = 0;
-
-
-    const interval =
-        setInterval(
-            () => {
-
-                /*
-                   نمسح طبقة النص فقط.
-                */
-
-                textCtx.clearRect(
-                    0,
-                    0,
-                    W,
-                    H
-                );
-
-
-                const partial =
-                    text.substring(
-                        0,
-                        index
-                    );
-
-
-                /*
-                   الظل
-                */
-
-                textCtx.shadowBlur =
-                    0;
-
-
-                textCtx.fillStyle =
-                    "#11152c";
-
-
-                textCtx.fillText(
-
-                    partial,
-
-                    cx - 2,
-
-                    yPos + 2
-                );
-
-
-                /*
-                   النيون
-                */
-
-                textCtx.shadowBlur =
-                    18;
-
-
-                textCtx.shadowColor =
-                    "#3399ff";
-
-
-                textCtx.fillStyle =
-                    "#3399ff";
-
-
-                textCtx.fillText(
-
-                    partial,
-
-                    cx,
-
-                    yPos
-                );
-
-
-                index++;
-
-
-                if (
-                    index >
-                    text.length
-                ) {
-
-                    clearInterval(
-                        interval
-                    );
-                }
-
-            },
-
-            150
+    const image =
+        tctx.getImageData(
+            0,
+            0,
+            temp.width,
+            temp.height
         );
+
+
+    const targets = [];
+
+
+    /*
+       نأخذ نقاطًا من النص
+    */
+
+    const spacing =
+        Math.max(
+            3,
+            Math.floor(
+                dpr * 3
+            )
+        );
+
+
+    for (
+        let y = 0;
+        y < temp.height;
+        y += spacing
+    ) {
+
+        for (
+            let x = 0;
+            x < temp.width;
+            x += spacing
+        ) {
+
+            const index =
+                (
+                    y *
+                    temp.width +
+                    x
+                ) * 4;
+
+
+            const alpha =
+                image.data[
+                    index + 3
+                ];
+
+
+            if (
+                alpha > 100
+            ) {
+
+                targets.push({
+
+                    x:
+                        x / dpr,
+
+                    y:
+                        y / dpr
+                });
+            }
+        }
+    }
+
+
+    return targets;
+}
+
+
+/* =========================================================
+   GATHER BLOOD INTO TEXT
+========================================================= */
+
+function gatherBloodIntoText() {
+
+    /*
+       عدد كبير من النقاط
+       يعطي جملة واضحة.
+    */
+
+    let targets =
+        createTextTargets();
+
+
+    /*
+       إذا كان عدد القطرات قليلًا،
+       نكرر بعض الأهداف.
+    */
+
+    const particleCount =
+        Math.max(
+            targets.length,
+            250
+        );
+
+
+    const particles = [];
+
+
+    for (
+        let i = 0;
+        i < particleCount;
+        i++
+    ) {
+
+        const target =
+            targets[
+                i %
+                targets.length
+            ];
+
+
+        /*
+           نقطة البداية:
+           تأتي من مكان إحدى قطرات الدم
+           أو من أطراف الزهرة.
+        */
+
+        const source =
+            petalEndPoints[
+                i %
+                petalEndPoints.length
+            ];
+
+
+        particles.push({
+
+            x:
+                source.startX,
+
+            y:
+                source.startY,
+
+
+            targetX:
+                target.x,
+
+            targetY:
+                target.y,
+
+
+            delay:
+                Math.random() *
+                1800,
+
+
+            duration:
+                1600 +
+                Math.random() *
+                1300,
+
+
+            size:
+                1.1 +
+                Math.random() *
+                1.4,
+
+
+            startTime:
+                performance.now(),
+
+            arrived:
+                false
+        });
+    }
+
+
+    requestAnimationFrame(
+        function animateGather(now) {
+
+            bloodCtx.clearRect(
+                0,
+                0,
+                W,
+                H
+            );
+
+
+            let finished =
+                true;
+
+
+            particles.forEach(
+                particle => {
+
+                    const elapsed =
+                        now -
+                        particle.startTime;
+
+
+                    if (
+                        elapsed <
+                        particle.delay
+                    ) {
+
+                        finished =
+                            false;
+
+                        return;
+                    }
+
+
+                    const local =
+                        Math.min(
+                            (
+                                elapsed -
+                                particle.delay
+                            ) /
+                            particle.duration,
+                            1
+                        );
+
+
+                    if (
+                        local <
+                        1
+                    ) {
+
+                        finished =
+                            false;
+                    }
+
+
+                    /*
+                       حركة ناعمة
+                    */
+
+                    const eased =
+                        local *
+                        local *
+                        (
+                            3 -
+                            2 *
+                            local
+                        );
+
+
+                    /*
+                       مسار منحني قليلًا
+                    */
+
+                    const curve =
+                        Math.sin(
+                            eased *
+                            Math.PI
+                        ) *
+                        30;
+
+
+                    const x =
+                        particle.x +
+                        (
+                            particle.targetX -
+                            particle.x
+                        ) *
+                        eased;
+
+
+                    const y =
+                        particle.y +
+                        (
+                            particle.targetY -
+                            particle.y
+                        ) *
+                        eased
+                        -
+                        curve;
+
+
+                    /*
+                       النقطة الحمراء
+                    */
+
+                    bloodCtx.save();
+
+
+                    bloodCtx.shadowBlur =
+                        9;
+
+
+                    bloodCtx.shadowColor =
+                        "rgba(200,20,30,0.8)";
+
+
+                    bloodCtx.fillStyle =
+                        "rgba(210,25,35,0.95)";
+
+
+                    bloodCtx.beginPath();
+
+
+                    bloodCtx.arc(
+                        x,
+                        y,
+                        particle.size,
+                        0,
+                        Math.PI * 2
+                    );
+
+
+                    bloodCtx.fill();
+
+
+                    bloodCtx.restore();
+                }
+            );
+
+
+            if (
+                finished
+            ) {
+
+                /*
+                   بعد تجمع كل القطرات
+                   نتركها ثابتة كجملة.
+                */
+
+                return;
+            }
+
+
+            requestAnimationFrame(
+                animateGather
+            );
+        }
+    );
 }
 
 
@@ -1470,29 +1753,21 @@ function showLoveText() {
 resizeCanvas();
 
 
-clearAll();
+flowerCtx.fillStyle =
+    "#05020a";
+
+
+flowerCtx.fillRect(
+    0,
+    0,
+    W,
+    H
+);
 
 
 setTimeout(
     drawItemFromQueue,
     600
-);
-
-
-/* =========================================================
-   RESIZE
-========================================================= */
-
-window.addEventListener(
-    "resize",
-    () => {
-
-        /*
-           لا نعيد الرسم أثناء
-           الأنيميشن حتى لا يختفي المشهد.
-        */
-
-    }
 );
 
 </script>
